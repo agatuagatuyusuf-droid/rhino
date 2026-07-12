@@ -30,4 +30,6 @@
 | FAIL     | Verification failed         |
 | BLOCKED  | No Rhino 8 environment      |
 
-> Release build and foundation smoke are CI-verified. Rhino GUI load verification requires a Windows environment with Rhino 8 installed and is not part of automated CI at this phase.
+> Phase 00 includes an automated Windows validation pipeline. A specific commit is considered CI-verified only when its GitHub Actions run has completed successfully. Rhino GUI loading remains a separate manual verification.
+
+Current Rhino GUI verification status: NOT_RUN

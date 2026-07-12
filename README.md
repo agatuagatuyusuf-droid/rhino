@@ -63,7 +63,7 @@ dotnet test tests/RhinoCommercialPlatform.UnitTests/RhinoCommercialPlatform.Unit
 dotnet run --project tests/RhinoCommercialPlatform.Foundation.SmokeTests/RhinoCommercialPlatform.Foundation.SmokeTests.csproj -c Release
 
 # Full validation
-powershell -ExecutionPolicy Bypass -File tools/run_validation.ps1
+pwsh -NoProfile -File tools/run_validation.ps1
 ```
 
 ## Commands
@@ -72,7 +72,7 @@ powershell -ExecutionPolicy Bypass -File tools/run_validation.ps1
 
 ## Status
 
-> Release build and foundation smoke are CI-verified. Rhino GUI load verification requires a Windows environment with Rhino 8 installed and is not part of automated CI at this phase.
+> Phase 00 includes an automated Windows validation pipeline. A specific commit is considered CI-verified only when its GitHub Actions run has completed successfully. Rhino GUI loading remains a separate manual verification.
 
 ## What Phase 00 Does NOT Include
 

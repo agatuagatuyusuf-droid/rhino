@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Reflection;
 using RhinoCommercialPlatform.Core.Abstractions;
 using RhinoCommercialPlatform.Core.Runtime;
@@ -58,16 +58,48 @@ public sealed class AppRuntime : IDisposable
 
             return new AppRuntime(metadata, paths, logger, modules);
         }
-        catch
+        catch (Exception startupException)
         {
+            var rollbackErrors = new List<Exception>();
+
             if (modules != null)
             {
-                try { modules.ShutdownAll(); } catch { /* Shutdown errors during startup rollback */ }
+                try
+                {
+                    modules.ShutdownAll();
+                }
+                catch (Exception rollbackException)
+                {
+                    rollbackErrors.Add(rollbackException);
+                }
             }
-            if (logger is IDisposable d)
+
+            if (logger is IDisposable disposableLogger)
             {
-                try { d.Dispose(); } catch { /* Dispose errors during startup rollback */ }
+                try
+                {
+                    disposableLogger.Dispose();
+                }
+                catch (Exception disposeException)
+                {
+                    rollbackErrors.Add(disposeException);
+                }
             }
+
+            if (rollbackErrors.Count > 0)
+            {
+                var allErrors = new List<Exception>
+                {
+                    startupException
+                };
+
+                allErrors.AddRange(rollbackErrors);
+
+                throw new AggregateException(
+                    "Runtime startup failed and rollback was not clean.",
+                    allErrors);
+            }
+
             throw;
         }
     }
@@ -75,24 +107,61 @@ public sealed class AppRuntime : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
-        _disposed = true;
+        }
+
+        var shutdownErrors = new List<Exception>();
 
         try
         {
             Modules.ShutdownAll();
-            Logger.Information("RhinoCommercialPlatform runtime stopped.");
         }
-        catch
+        catch (Exception shutdownException)
         {
-            // Log but don't suppress
-            try { Logger.Information("RhinoCommercialPlatform runtime stopped with module shutdown errors."); }
-            catch { /* Last resort */ }
+            shutdownErrors.Add(shutdownException);
+
+            try
+            {
+                Logger.Error(
+                    shutdownException,
+                    "One or more modules failed during runtime shutdown.");
+            }
+            catch (Exception loggingException)
+            {
+                shutdownErrors.Add(loggingException);
+            }
         }
 
-        if (Logger is IDisposable d)
+        try
         {
-            try { d.Dispose(); } catch { /* Ignore dispose errors */ }
+            Logger.Information(
+                "RhinoCommercialPlatform runtime stopped.");
+        }
+        catch (Exception loggingException)
+        {
+            shutdownErrors.Add(loggingException);
+        }
+
+        if (Logger is IDisposable disposableLogger)
+        {
+            try
+            {
+                disposableLogger.Dispose();
+            }
+            catch (Exception disposeException)
+            {
+                shutdownErrors.Add(disposeException);
+            }
+        }
+
+        _disposed = true;
+
+        if (shutdownErrors.Count > 0)
+        {
+            throw new AggregateException(
+                "RhinoCommercialPlatform runtime shutdown failed.",
+                shutdownErrors);
         }
     }
 
@@ -117,7 +186,7 @@ public sealed class AppRuntime : IDisposable
         }
         catch
         {
-            // Fall through
+            // Fallback for non-critical metadata read
         }
 
         try
@@ -128,7 +197,7 @@ public sealed class AppRuntime : IDisposable
         }
         catch
         {
-            // Fall through
+            // Fallback for non-critical metadata read
         }
 
         return "0.1.0";

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RhinoCommercialPlatform.Core.Abstractions;
 using RhinoCommercialPlatform.Infrastructure;
@@ -62,6 +61,62 @@ public class FileAppLoggerTests
             Assert.IsTrue(content.Contains("[REDACTED]"));
             Assert.IsTrue(content.Contains("User"));
             Assert.IsTrue(content.Contains("logged in."));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Information_RedactsAuthorizationBearerToken()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new AppPaths(tempDir);
+            var clock = new TestClock();
+            using var logger = new FileAppLogger(paths, clock);
+
+            logger.Information("Authorization: Bearer abc.def.123");
+
+            var logFile = Path.Combine(paths.LogsDirectory, "plugin-20260712.log");
+            Assert.IsTrue(File.Exists(logFile));
+
+            var content = File.ReadAllText(logFile);
+            Assert.IsTrue(content.Contains("Authorization:"));
+            Assert.IsTrue(content.Contains("[REDACTED]"));
+            Assert.IsFalse(content.Contains("Bearer"));
+            Assert.IsFalse(content.Contains("abc.def.123"));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Error_RedactsExceptionMessage()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new AppPaths(tempDir);
+            var clock = new TestClock();
+            using var logger = new FileAppLogger(paths, clock);
+
+            var exception = new InvalidOperationException("token=should-be-redacted");
+            logger.Error(exception, "An error occurred.");
+
+            var logFile = Path.Combine(paths.LogsDirectory, "plugin-20260712.log");
+            Assert.IsTrue(File.Exists(logFile));
+
+            var content = File.ReadAllText(logFile);
+            Assert.IsFalse(content.Contains("should-be-redacted"));
+            Assert.IsTrue(content.Contains("[REDACTED]"));
+            Assert.IsTrue(content.Contains("An error occurred."));
         }
         finally
         {

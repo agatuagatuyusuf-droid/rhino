@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
+
+from __future__ import annotations
+
 import sys
-import os
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 REQUIRED_FILES = [
     "RhinoCommercialPlatform.sln",
@@ -10,6 +16,7 @@ REQUIRED_FILES = [
     ".editorconfig",
     ".gitignore",
     "README.md",
+    ".github/workflows/ci.yml",
     "src/RhinoCommercialPlatform.Core/RhinoCommercialPlatform.Core.csproj",
     "src/RhinoCommercialPlatform.Core/Abstractions/IAppLogger.cs",
     "src/RhinoCommercialPlatform.Core/Abstractions/IAppPaths.cs",
@@ -44,28 +51,225 @@ REQUIRED_FILES = [
     "tools/check_structure.py",
     "tools/check_forbidden_files.py",
     "tools/check_release_boundary.py",
+    "tools/check_validation_failfast.ps1",
     "tools/run_validation.ps1",
     "docs/architecture.md",
     "docs/phases.md",
     "docs/manual-rhino-smoke.md",
-    ".github/workflows/ci.yml",
 ]
 
-errors = []
+EXPECTED_PROJECTS = [
+    r"src\RhinoCommercialPlatform.Core\RhinoCommercialPlatform.Core.csproj",
+    r"src\RhinoCommercialPlatform.Modules.Abstractions\RhinoCommercialPlatform.Modules.Abstractions.csproj",
+    r"src\RhinoCommercialPlatform.Infrastructure\RhinoCommercialPlatform.Infrastructure.csproj",
+    r"src\RhinoCommercialPlatform.Modules.Foundation\RhinoCommercialPlatform.Modules.Foundation.csproj",
+    r"src\RhinoCommercialPlatform.Plugin\RhinoCommercialPlatform.Plugin.csproj",
+    r"tests\RhinoCommercialPlatform.UnitTests\RhinoCommercialPlatform.UnitTests.csproj",
+    r"tests\RhinoCommercialPlatform.Foundation.SmokeTests\RhinoCommercialPlatform.Foundation.SmokeTests.csproj",
+]
 
-for f in REQUIRED_FILES:
-    full = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", f)
-    full = os.path.normpath(full)
-    if not os.path.isfile(full):
-        errors.append(f"MISSING: {f}")
-    elif os.path.getsize(full) == 0:
-        errors.append(f"EMPTY: {f}")
+errors: list[str] = []
+
+
+def read_text(relative_path: str) -> str:
+    path = REPO_ROOT / relative_path
+    try:
+        return path.read_text(encoding="utf-8-sig")
+    except Exception as exc:
+        errors.append(f"READ_FAILED: {relative_path}: {exc}")
+        return ""
+
+
+def require_contains(relative_path: str, required_values: list[str]) -> None:
+    content = read_text(relative_path)
+    for value in required_values:
+        if value not in content:
+            errors.append(
+                f"MISSING_CONTENT: {relative_path} does not contain {value!r}"
+            )
+
+
+def require_not_contains(relative_path: str, forbidden_values: list[str]) -> None:
+    content = read_text(relative_path)
+    for value in forbidden_values:
+        if value in content:
+            errors.append(
+                f"FORBIDDEN_CONTENT: {relative_path} contains {value!r}"
+            )
+
+
+for relative_path in REQUIRED_FILES:
+    full_path = REPO_ROOT / relative_path
+    if not full_path.is_file():
+        errors.append(f"MISSING_FILE: {relative_path}")
+    elif full_path.stat().st_size == 0:
+        errors.append(f"EMPTY_FILE: {relative_path}")
+
+solution = read_text("RhinoCommercialPlatform.sln")
+for project in EXPECTED_PROJECTS:
+    if project not in solution:
+        errors.append(f"SOLUTION_PROJECT_MISSING: {project}")
+
+require_contains(
+    "src/RhinoCommercialPlatform.Plugin/RhinoCommercialPlatform.Plugin.csproj",
+    [
+        "<TargetFrameworks>net48;net7.0-windows</TargetFrameworks>",
+        "<TargetExt>.rhp</TargetExt>",
+        'PackageReference Include="RhinoCommon"',
+        'PrivateAssets="all"',
+        'ExcludeAssets="runtime"',
+        "RhinoCommercialPlatform.Core.csproj",
+        "RhinoCommercialPlatform.Modules.Abstractions.csproj",
+        "RhinoCommercialPlatform.Infrastructure.csproj",
+        "RhinoCommercialPlatform.Modules.Foundation.csproj",
+    ],
+)
+
+require_not_contains(
+    "src/RhinoCommercialPlatform.Plugin/RhinoCommercialPlatform.Plugin.csproj",
+    [
+        "<HintPath>",
+        "C:\\Program Files\\Rhino",
+        "C:/Program Files/Rhino",
+    ],
+)
+
+require_contains(
+    "src/RhinoCommercialPlatform.Plugin/RhinoCommercialPlatformPlugin.cs",
+    [
+        "AppRuntime.Start()",
+        "OnLoad",
+        "OnShutdown",
+        "finally",
+        "Runtime = null",
+        "Instance = null",
+    ],
+)
+
+require_contains(
+    "src/RhinoCommercialPlatform.Plugin/AppRuntime.cs",
+    [
+        "new FoundationModule()",
+        "modules.InitializeAll(context)",
+        "Modules.ShutdownAll()",
+        "AggregateException",
+    ],
+)
+
+require_contains(
+    "src/RhinoCommercialPlatform.Plugin/Commands/PlatformStatusCommand.cs",
+    [
+        'EnglishName => "RCP_Status"',
+        "RhinoCommercialPlatformPlugin.Instance",
+        "plugin.Runtime",
+        "runtime.Modules.Modules",
+        "Product:",
+        "Version:",
+        "Mode:",
+        "Logs:",
+        "Modules:",
+    ],
+)
+
+require_not_contains(
+    "src/RhinoCommercialPlatform.Plugin/Commands/PlatformStatusCommand.cs",
+    [
+        "new AppRuntime",
+        "AppRuntime.Start()",
+    ],
+)
+
+require_contains(
+    ".github/workflows/ci.yml",
+    [
+        "windows-latest",
+        "tools/run_validation.ps1",
+        "actions/checkout@v4",
+        "actions/setup-dotnet@v4",
+        "actions/setup-python@v5",
+    ],
+)
+
+require_not_contains(
+    ".github/workflows/ci.yml",
+    [
+        "continue-on-error: true",
+        "powershell -ExecutionPolicy",
+        'echo "tests passed"',
+    ],
+)
+
+require_contains(
+    "tools/run_validation.ps1",
+    [
+        "Invoke-NativeChecked",
+        "$LASTEXITCODE",
+        "check_validation_failfast.ps1",
+        "dotnet",
+        "test",
+        "RhinoCommercialPlatform.Foundation.SmokeTests.csproj",
+        "check_release_boundary.py",
+        "VALIDATION_PASS",
+    ],
+)
+
+require_contains(
+    "tests/RhinoCommercialPlatform.Foundation.SmokeTests/Program.cs",
+    [
+        "FoundationModule",
+        "InitializeAll",
+        "ShutdownAll",
+        "File.ReadAllText",
+        "FOUNDATION_SMOKE_PASS",
+        "secret-value",
+        "[REDACTED]",
+    ],
+)
+
+non_rhino_projects = [
+    "src/RhinoCommercialPlatform.Core",
+    "src/RhinoCommercialPlatform.Modules.Abstractions",
+    "src/RhinoCommercialPlatform.Infrastructure",
+    "src/RhinoCommercialPlatform.Modules.Foundation",
+]
+
+for project_directory in non_rhino_projects:
+    directory = REPO_ROOT / project_directory
+    if not directory.is_dir():
+        continue
+
+    for path in directory.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.suffix.lower() not in {".cs", ".csproj", ".props"}:
+            continue
+
+        content = path.read_text(encoding="utf-8-sig")
+        if "RhinoCommon" in content or "using Rhino;" in content:
+            errors.append(
+                f"RHINO_DEPENDENCY_OUTSIDE_PLUGIN: {path.relative_to(REPO_ROOT)}"
+            )
+
+source_files = list((REPO_ROOT / "src").rglob("*.cs"))
+for source_file in source_files:
+    content = source_file.read_text(encoding="utf-8-sig")
+    suspicious_patterns = [
+        "catch { /* Ignore",
+        "catch { /* Last resort",
+        "catch { /* Shutdown errors",
+    ]
+
+    for pattern in suspicious_patterns:
+        if pattern in content:
+            errors.append(
+                f"SILENT_CATCH: {source_file.relative_to(REPO_ROOT)} contains {pattern!r}"
+            )
 
 if errors:
-    for e in errors:
-        print(f"FAIL: {e}")
+    for error in errors:
+        print(f"FAIL: {error}")
     print("STRUCTURE_CHECK_FAILED")
     sys.exit(1)
-else:
-    print("STRUCTURE_CHECK_PASS")
-    sys.exit(0)
+
+print("STRUCTURE_CHECK_PASS")
+sys.exit(0)

@@ -2,28 +2,49 @@ name: CI
 
 on:
   push:
-    branches: [main, feat/**]
+    branches:
+      - main
+      - "feat/**"
+      - "fix/**"
   pull_request:
-    branches: [main, feat/**]
+    branches:
+      - main
+      - "feat/**"
+      - "fix/**"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  build-test-validate:
+    name: Build, test and validate
     runs-on: windows-latest
+    timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
-      - uses: actions/setup-python@v5
+          dotnet-version: "8.0.x"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Show versions
+          python-version: "3.12"
+
+      - name: Show environment
+        shell: pwsh
         run: |
           dotnet --info
           python --version
-      - name: Run validation
+          git --version
+          pwsh --version
+
+      - name: Run complete validation
         shell: pwsh
-        run: powershell -ExecutionPolicy Bypass -File tools/run_validation.ps1
+        run: |
+          pwsh -NoProfile -File tools/run_validation.ps1
