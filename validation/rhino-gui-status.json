@@ -1,0 +1,15 @@
+{
+  "commit": "",
+  "windows": {
+    "status": "NOT_RUN",
+    "rhinoVersion": null,
+    "testedAtUtc": null,
+    "notes": null
+  },
+  "macos": {
+    "status": "NOT_RUN",
+    "rhinoVersion": null,
+    "testedAtUtc": null,
+    "notes": null
+  }
+}

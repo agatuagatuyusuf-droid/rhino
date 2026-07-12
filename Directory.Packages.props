@@ -5,5 +5,7 @@
   <ItemGroup>
     <PackageVersion Include="RhinoCommon" Version="8.32.26160.13001" />
     <PackageVersion Include="MSTest" Version="4.3.0" />
+    <PackageVersion Include="Eto.Forms" Version="2.8.3" />
+    <PackageVersion Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 </Project>

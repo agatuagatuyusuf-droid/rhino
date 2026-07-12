@@ -14,14 +14,14 @@
 5. Run the command `RCP_Status` in Rhino's command line.
 6. Verify output includes:
    - Product: RhinoCommercialPlatform
-   - Version: 0.1.0
+    - Version: 0.2.0
    - Mode: Production
    - Operating System: Windows
    - OS Description: Microsoft Windows ...
    - Process Architecture: X64 / Arm64
    - Framework: .NET ... (or .NET Framework ...)
    - Logs: <path>
-   - Modules: foundation (Foundation) v0.1.0
+    - Modules: foundation (Foundation) v0.2.0
 7. Close Rhino.
 8. Check log file under `%LOCALAPPDATA%\RhinoCommercialPlatform\logs\plugin-YYYYMMDD.log`:
    - "Foundation module initialized."

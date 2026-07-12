@@ -58,3 +58,63 @@ jobs:
         shell: pwsh
         run: |
           pwsh -NoProfile -File tools/run_validation.ps1 -Platform ${{ matrix.platform }}
+
+      - name: Set short SHA
+        shell: pwsh
+        run: |
+          $shortSha = "${{ github.sha }}".Substring(0, 7)
+          echo "SHORT_SHA=$shortSha" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Package Windows net7.0
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: python tools/package_test_artifacts.py --platform windows --framework net7.0
+
+      - name: Check Windows net7.0 package
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: python tools/check_test_package.py --path ci-artifacts/RCP-windows-net7.0-${{ env.SHORT_SHA }}
+
+      - name: Upload Windows net7.0 artifact
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: RCP-windows-net7.0-${{ env.SHORT_SHA }}
+          path: ci-artifacts/RCP-windows-net7.0-${{ env.SHORT_SHA }}/
+          retention-days: 14
+
+      - name: Package Windows net48
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: python tools/package_test_artifacts.py --platform windows --framework net48
+
+      - name: Check Windows net48 package
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: python tools/check_test_package.py --path ci-artifacts/RCP-windows-net48-${{ env.SHORT_SHA }}
+
+      - name: Upload Windows net48 artifact
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: RCP-windows-net48-${{ env.SHORT_SHA }}
+          path: ci-artifacts/RCP-windows-net48-${{ env.SHORT_SHA }}/
+          retention-days: 14
+
+      - name: Package macOS net7.0
+        if: matrix.platform == 'macos'
+        shell: pwsh
+        run: python tools/package_test_artifacts.py --platform macos --framework net7.0
+
+      - name: Check macOS net7.0 package
+        if: matrix.platform == 'macos'
+        shell: pwsh
+        run: python tools/check_test_package.py --path ci-artifacts/RCP-macos-net7.0-${{ env.SHORT_SHA }}
+
+      - name: Upload macOS net7.0 artifact
+        if: matrix.platform == 'macos'
+        uses: actions/upload-artifact@v4
+        with:
+          name: RCP-macos-net7.0-${{ env.SHORT_SHA }}
+          path: ci-artifacts/RCP-macos-net7.0-${{ env.SHORT_SHA }}/
+          retention-days: 14

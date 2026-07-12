@@ -6,6 +6,10 @@ using RhinoCommercialPlatform.Core.Runtime;
 using RhinoCommercialPlatform.Infrastructure;
 using RhinoCommercialPlatform.Modules.Abstractions;
 using RhinoCommercialPlatform.Modules.Foundation;
+using RhinoCommercialPlatform.Platform.Abstractions;
+using RhinoCommercialPlatform.UI.Settings;
+using RhinoCommercialPlatform.UI.Diagnostics;
+using RhinoCommercialPlatform.UI.Theme;
 
 namespace RhinoCommercialPlatform.Plugin;
 
@@ -17,6 +21,18 @@ public sealed class AppRuntime : IDisposable
     public ModuleRegistry Modules { get; }
     public IPlatformInfo Platform { get; }
 
+    // UI-related services
+    public IUserSettingsService UserSettingsService { get; private set; }
+    public DiagnosticReportService DiagnosticReportService { get; private set; }
+    public ThemeManager ThemeManager { get; private set; }
+    public DateTime StartedAtUtc { get; }
+    public string? LastRuntimeError { get; private set; }
+    public string? CurrentLogFile { get; private set; }
+
+    // Platform services
+    public IExternalLauncher? ExternalLauncher { get; private set; }
+    public ISystemThemeProvider? SystemThemeProvider { get; private set; }
+
     private bool _disposed;
 
     private AppRuntime(
@@ -24,16 +40,28 @@ public sealed class AppRuntime : IDisposable
         IAppPaths paths,
         IAppLogger logger,
         ModuleRegistry modules,
-        IPlatformInfo platform)
+        IPlatformInfo platform,
+        IUserSettingsService userSettingsService,
+        DiagnosticReportService diagnosticReportService,
+        ThemeManager themeManager,
+        DateTime startedAtUtc,
+        IExternalLauncher? externalLauncher,
+        ISystemThemeProvider? systemThemeProvider)
     {
         Metadata = metadata;
         Paths = paths;
         Logger = logger;
         Modules = modules;
         Platform = platform ?? throw new ArgumentNullException(nameof(platform));
+        UserSettingsService = userSettingsService ?? throw new ArgumentNullException(nameof(userSettingsService));
+        DiagnosticReportService = diagnosticReportService ?? throw new ArgumentNullException(nameof(diagnosticReportService));
+        ThemeManager = themeManager ?? throw new ArgumentNullException(nameof(themeManager));
+        StartedAtUtc = startedAtUtc;
+        ExternalLauncher = externalLauncher;
+        SystemThemeProvider = systemThemeProvider;
     }
 
-    public static AppRuntime Start()
+    public static AppRuntime Start(IServiceProvider? serviceProvider = null)
     {
         IAppPaths? paths = null;
         IAppLogger? logger = null;
@@ -41,6 +69,7 @@ public sealed class AppRuntime : IDisposable
 
         try
         {
+            var startedAtUtc = DateTime.UtcNow;
             var runtimeMode = GetRuntimeMode();
             var version = GetVersion();
             var metadata = new PluginMetadata("RhinoCommercialPlatform", version, runtimeMode);
@@ -64,9 +93,27 @@ public sealed class AppRuntime : IDisposable
             var context = new ModuleContext(logger, paths);
             modules.InitializeAll(context);
 
+            // Create UI services
+            var userSettingsService = new UserSettingsService(paths, logger);
+            var diagnosticReportService = new DiagnosticReportService(paths.LogsDirectory, paths.ConfigDirectory);
+            var systemThemeProvider = CreateSystemThemeProvider();
+            var themeManager = new ThemeManager(systemThemeProvider);
+            var externalLauncher = CreateExternalLauncher(platform);
+
             logger.Information("RhinoCommercialPlatform runtime started.");
 
-            return new AppRuntime(metadata, paths, logger, modules, platform);
+            return new AppRuntime(
+                metadata,
+                paths,
+                logger,
+                modules,
+                platform,
+                userSettingsService,
+                diagnosticReportService,
+                themeManager,
+                startedAtUtc,
+                externalLauncher,
+                systemThemeProvider);
         }
         catch (Exception startupException)
         {
@@ -175,6 +222,8 @@ public sealed class AppRuntime : IDisposable
         }
     }
 
+    public TimeSpan Uptime => DateTime.UtcNow - StartedAtUtc;
+
     private static RuntimeMode GetRuntimeMode()
     {
 #if DEBUG
@@ -210,6 +259,37 @@ public sealed class AppRuntime : IDisposable
             // Fallback for non-critical metadata read
         }
 
-        return "0.1.0";
+        return "0.2.0";
+    }
+
+    private static IExternalLauncher? CreateExternalLauncher(IPlatformInfo platform)
+    {
+        if (platform.IsWindows)
+        {
+            return new RhinoCommercialPlatform.Platform.Windows.WindowsExternalLauncher();
+        }
+        else if (platform.IsMacOS)
+        {
+            return new RhinoCommercialPlatform.Platform.Mac.MacExternalLauncher();
+        }
+
+        return null;
+    }
+
+    private static ISystemThemeProvider? CreateSystemThemeProvider()
+    {
+        // Use RuntimeInformation directly to avoid dependency on Platform.* assemblies
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+            System.Runtime.InteropServices.OSPlatform.Windows))
+        {
+            return new RhinoCommercialPlatform.Platform.Windows.WindowsSystemThemeProvider();
+        }
+        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+            System.Runtime.InteropServices.OSPlatform.OSX))
+        {
+            return new RhinoCommercialPlatform.Platform.Mac.MacSystemThemeProvider();
+        }
+
+        return null;
     }
 }
