@@ -1,0 +1,50 @@
+# Build outputs
+bin/
+obj/
+dist/
+build/
+release/
+artifacts/
+TestResults/
+coverage/
+
+# Compiled binaries
+*.exe
+*.zip
+*.7z
+*.rar
+*.msi
+*.dll
+*.pdb
+*.rhp
+*.yak
+
+# Secrets and keys
+.env
+*.key
+*.pfx
+*.p12
+release_private.pem
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.sln.docstates
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs and temp
+*.log
+*.tmp
+
+# Tools cache
+tools/.dotnet-tools/
+tools/.obfuscar-temp/
+
+# Sensitive docs (placeholders may exist but actual contracts/licenses excluded)
+合同
+授权书
