@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feat/**]
+  pull_request:
+    branches: [main, feat/**]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Show versions
+        run: |
+          dotnet --info
+          python --version
+      - name: Run validation
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File tools/run_validation.ps1

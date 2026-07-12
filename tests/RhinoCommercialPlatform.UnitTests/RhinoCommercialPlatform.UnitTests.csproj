@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>RhinoCommercialPlatform.UnitTests</AssemblyName>
+    <RootNamespace>RhinoCommercialPlatform.UnitTests</RootNamespace>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Core\RhinoCommercialPlatform.Core.csproj" />
+    <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Modules.Abstractions\RhinoCommercialPlatform.Modules.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Infrastructure\RhinoCommercialPlatform.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Modules.Foundation\RhinoCommercialPlatform.Modules.Foundation.csproj" />
+  </ItemGroup>
+</Project>

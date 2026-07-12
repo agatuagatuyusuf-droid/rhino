@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>RhinoCommercialPlatform.Foundation.SmokeTests</AssemblyName>
+    <RootNamespace>RhinoCommercialPlatform.Foundation.SmokeTests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Core\RhinoCommercialPlatform.Core.csproj" />
+    <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Modules.Abstractions\RhinoCommercialPlatform.Modules.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Infrastructure\RhinoCommercialPlatform.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Modules.Foundation\RhinoCommercialPlatform.Modules.Foundation.csproj" />
+  </ItemGroup>
+</Project>
