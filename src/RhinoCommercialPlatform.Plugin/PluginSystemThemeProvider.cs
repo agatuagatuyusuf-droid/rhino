@@ -71,8 +71,12 @@ public sealed class PluginSystemThemeProvider : ISystemThemeProvider
             }
             else
             {
-                RhinoApp.WriteLine("Theme detection (macOS): 'defaults read' timed out after {MacProcessTimeoutMs}ms.");
+                RhinoApp.WriteLine("Theme detection (macOS): 'defaults read' timed out after " + MacProcessTimeoutMs + "ms.");
+#if NET48
+                try { proc.Kill(); } catch { /* best-effort cleanup */ }
+#else
                 try { proc.Kill(entireProcessTree: true); } catch { /* best-effort cleanup */ }
+#endif
                 return SystemTheme.Light;
             }
 
