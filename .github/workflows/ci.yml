@@ -18,9 +18,19 @@ permissions:
 
 jobs:
   build-test-validate:
-    name: Build, test and validate
-    runs-on: windows-latest
+    name: Build, test and validate (${{ matrix.display_name }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            display_name: Windows
+          - os: macos-14
+            platform: macos
+            display_name: macOS
 
     steps:
       - name: Checkout
@@ -47,4 +57,4 @@ jobs:
       - name: Run complete validation
         shell: pwsh
         run: |
-          pwsh -NoProfile -File tools/run_validation.ps1
+          pwsh -NoProfile -File tools/run_validation.ps1 -Platform ${{ matrix.platform }}

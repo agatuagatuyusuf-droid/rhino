@@ -53,9 +53,13 @@ REQUIRED_FILES = [
     "tools/check_release_boundary.py",
     "tools/check_validation_failfast.ps1",
     "tools/run_validation.ps1",
+    "tools/check_platform_compatibility.py",
     "docs/architecture.md",
     "docs/phases.md",
     "docs/manual-rhino-smoke.md",
+    "docs/cross-platform-policy.md",
+    "docs/manual-rhino-smoke-windows.md",
+    "docs/manual-rhino-smoke-macos.md",
 ]
 
 EXPECTED_PROJECTS = [
@@ -113,7 +117,8 @@ for project in EXPECTED_PROJECTS:
 require_contains(
     "src/RhinoCommercialPlatform.Plugin/RhinoCommercialPlatform.Plugin.csproj",
     [
-        "<TargetFrameworks>net48;net7.0-windows</TargetFrameworks>",
+        "<TargetFrameworks>net7.0;net48</TargetFrameworks>",
+        "<EnableDynamicLoading>true</EnableDynamicLoading>",
         "<TargetExt>.rhp</TargetExt>",
         'PackageReference Include="RhinoCommon"',
         'PrivateAssets="all"',
@@ -153,6 +158,8 @@ require_contains(
         "modules.InitializeAll(context)",
         "Modules.ShutdownAll()",
         "AggregateException",
+        "RuntimePlatformInfo",
+        "IPlatformInfo",
     ],
 )
 
@@ -168,6 +175,9 @@ require_contains(
         "Mode:",
         "Logs:",
         "Modules:",
+        "Operating System:",
+        "Process Architecture:",
+        "Framework:",
     ],
 )
 
@@ -183,6 +193,7 @@ require_contains(
     ".github/workflows/ci.yml",
     [
         "windows-latest",
+        "macos-14",
         "tools/run_validation.ps1",
         "actions/checkout@v4",
         "actions/setup-dotnet@v4",
@@ -205,11 +216,13 @@ require_contains(
         "Invoke-NativeChecked",
         "$LASTEXITCODE",
         "check_validation_failfast.ps1",
+        "check_platform_compatibility.py",
         "dotnet",
         "test",
         "RhinoCommercialPlatform.Foundation.SmokeTests.csproj",
         "check_release_boundary.py",
         "VALIDATION_PASS",
+        "platform=$Platform",
     ],
 )
 
@@ -223,6 +236,8 @@ require_contains(
         "FOUNDATION_SMOKE_PASS",
         "secret-value",
         "[REDACTED]",
+        "RuntimePlatformInfo",
+        "OperatingSystem",
     ],
 )
 

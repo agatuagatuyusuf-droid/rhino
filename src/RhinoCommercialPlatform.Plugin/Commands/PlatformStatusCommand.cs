@@ -28,6 +28,10 @@ public sealed class PlatformStatusCommand : Command
         RhinoApp.WriteLine($"Version: {runtime.Metadata.Version}");
         RhinoApp.WriteLine($"Mode: {runtime.Metadata.Mode}");
         RhinoApp.WriteLine($"Logs: {runtime.Paths.LogsDirectory}");
+        RhinoApp.WriteLine($"Operating System: {runtime.Platform.OperatingSystem}");
+        RhinoApp.WriteLine($"OS Description: {runtime.Platform.OperatingSystemDescription}");
+        RhinoApp.WriteLine($"Process Architecture: {runtime.Platform.ProcessArchitecture}");
+        RhinoApp.WriteLine($"Framework: {runtime.Platform.FrameworkDescription}");
         RhinoApp.WriteLine("Modules:");
 
         foreach (var module in runtime.Modules.Modules)

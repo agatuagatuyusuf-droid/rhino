@@ -57,7 +57,20 @@ class Program
             Assert(!logContent.Contains("secret-value"),
                 "Found 'secret-value' in log - secrets were not redacted");
 
-            Console.WriteLine("FOUNDATION_SMOKE_PASS");
+            // Platform info validation
+            var platformInfo = new RuntimePlatformInfo();
+            Assert(!string.IsNullOrWhiteSpace(platformInfo.OperatingSystem),
+                "OperatingSystem should not be empty");
+            Assert(!string.IsNullOrWhiteSpace(platformInfo.OperatingSystemDescription),
+                "OperatingSystemDescription should not be empty");
+            Assert(!string.IsNullOrWhiteSpace(platformInfo.ProcessArchitecture),
+                "ProcessArchitecture should not be empty");
+            Assert(!string.IsNullOrWhiteSpace(platformInfo.FrameworkDescription),
+                "FrameworkDescription should not be empty");
+
+            Console.WriteLine($"Platform: {platformInfo.OperatingSystem}");
+
+            Console.WriteLine($"FOUNDATION_SMOKE_PASS platform={platformInfo.OperatingSystem}");
             return 0;
         }
         catch (Exception ex)

@@ -15,6 +15,7 @@ public sealed class AppRuntime : IDisposable
     public IAppPaths Paths { get; }
     public IAppLogger Logger { get; }
     public ModuleRegistry Modules { get; }
+    public IPlatformInfo Platform { get; }
 
     private bool _disposed;
 
@@ -22,12 +23,14 @@ public sealed class AppRuntime : IDisposable
         PluginMetadata metadata,
         IAppPaths paths,
         IAppLogger logger,
-        ModuleRegistry modules)
+        ModuleRegistry modules,
+        IPlatformInfo platform)
     {
         Metadata = metadata;
         Paths = paths;
         Logger = logger;
         Modules = modules;
+        Platform = platform ?? throw new ArgumentNullException(nameof(platform));
     }
 
     public static AppRuntime Start()
@@ -46,7 +49,14 @@ public sealed class AppRuntime : IDisposable
             paths.EnsureCreated();
 
             var clock = new SystemClock();
+            var platform = new RuntimePlatformInfo();
             logger = new FileAppLogger(paths, clock);
+
+            logger.Information(
+                $"Platform: {platform.OperatingSystem}; " +
+                $"OS: {platform.OperatingSystemDescription}; " +
+                $"Architecture: {platform.ProcessArchitecture}; " +
+                $"Framework: {platform.FrameworkDescription}");
 
             modules = new ModuleRegistry();
             modules.Register(new FoundationModule());
@@ -56,7 +66,7 @@ public sealed class AppRuntime : IDisposable
 
             logger.Information("RhinoCommercialPlatform runtime started.");
 
-            return new AppRuntime(metadata, paths, logger, modules);
+            return new AppRuntime(metadata, paths, logger, modules, platform);
         }
         catch (Exception startupException)
         {
