@@ -22,14 +22,17 @@ public class FileAppLoggerTests
         {
             var paths = new AppPaths(tempDir);
             var clock = new TestClock();
-            using var logger = new FileAppLogger(paths, clock);
 
-            logger.Information("Test message.");
+            string content;
+            using (var logger = new FileAppLogger(paths, clock))
+            {
+                logger.Information("Test message.");
+            }
 
             var logFile = Path.Combine(paths.LogsDirectory, "plugin-20260712.log");
             Assert.IsTrue(File.Exists(logFile));
 
-            var content = File.ReadAllText(logFile);
+            content = File.ReadAllText(logFile);
             Assert.IsTrue(content.Contains("Test message."));
             Assert.IsTrue(content.Contains("[INFORMATION]"));
             Assert.IsTrue(content.Contains("2026-07-12T12:34:56"));
@@ -49,14 +52,17 @@ public class FileAppLoggerTests
         {
             var paths = new AppPaths(tempDir);
             var clock = new TestClock();
-            using var logger = new FileAppLogger(paths, clock);
 
-            logger.Information("User token=my-secret-token logged in.");
+            string content;
+            using (var logger = new FileAppLogger(paths, clock))
+            {
+                logger.Information("User token=my-secret-token logged in.");
+            }
 
             var logFile = Path.Combine(paths.LogsDirectory, "plugin-20260712.log");
             Assert.IsTrue(File.Exists(logFile));
 
-            var content = File.ReadAllText(logFile);
+            content = File.ReadAllText(logFile);
             Assert.IsFalse(content.Contains("my-secret-token"));
             Assert.IsTrue(content.Contains("[REDACTED]"));
             Assert.IsTrue(content.Contains("User"));
@@ -77,14 +83,17 @@ public class FileAppLoggerTests
         {
             var paths = new AppPaths(tempDir);
             var clock = new TestClock();
-            using var logger = new FileAppLogger(paths, clock);
 
-            logger.Information("Authorization: Bearer abc.def.123");
+            string content;
+            using (var logger = new FileAppLogger(paths, clock))
+            {
+                logger.Information("Authorization: Bearer abc.def.123");
+            }
 
             var logFile = Path.Combine(paths.LogsDirectory, "plugin-20260712.log");
             Assert.IsTrue(File.Exists(logFile));
 
-            var content = File.ReadAllText(logFile);
+            content = File.ReadAllText(logFile);
             Assert.IsTrue(content.Contains("Authorization:"));
             Assert.IsTrue(content.Contains("[REDACTED]"));
             Assert.IsFalse(content.Contains("Bearer"));
@@ -105,15 +114,18 @@ public class FileAppLoggerTests
         {
             var paths = new AppPaths(tempDir);
             var clock = new TestClock();
-            using var logger = new FileAppLogger(paths, clock);
 
-            var exception = new InvalidOperationException("token=should-be-redacted");
-            logger.Error(exception, "An error occurred.");
+            string content;
+            using (var logger = new FileAppLogger(paths, clock))
+            {
+                var exception = new InvalidOperationException("token=should-be-redacted");
+                logger.Error(exception, "An error occurred.");
+            }
 
             var logFile = Path.Combine(paths.LogsDirectory, "plugin-20260712.log");
             Assert.IsTrue(File.Exists(logFile));
 
-            var content = File.ReadAllText(logFile);
+            content = File.ReadAllText(logFile);
             Assert.IsFalse(content.Contains("should-be-redacted"));
             Assert.IsTrue(content.Contains("[REDACTED]"));
             Assert.IsTrue(content.Contains("An error occurred."));
