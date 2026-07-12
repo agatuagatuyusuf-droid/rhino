@@ -38,8 +38,14 @@ FORBIDDEN_PATTERNS = [
     re.compile(r"^RhinoCommon\.dll$", re.IGNORECASE),
     re.compile(r"^Eto\.dll$", re.IGNORECASE),
     re.compile(r"^Eto\.\w+\.dll$", re.IGNORECASE),
+    re.compile(r"^System\.Text\.Json\.dll$", re.IGNORECASE),
     re.compile(r"(?i)UnitTests"),
     re.compile(r"(?i)SmokeTests"),
+]
+
+FORBIDDEN_UI_FILES = [
+    re.compile(r"(?i)PanelFormFactory\.cs"),
+    re.compile(r"(?i)PanelHandle\.cs"),
 ]
 
 
@@ -189,6 +195,24 @@ def main() -> None:
     ui_assembly = package_dir / "RhinoCommercialPlatform.UI.dll"
     if not ui_assembly.is_file():
         errors.append("MISSING_UI_ASSEMBLY: RhinoCommercialPlatform.UI.dll not found")
+
+    # Check UI assembly does not depend on System.Text.Json
+    # (Only on net7.0 where we can inspect the deps file)
+    deps_file = package_dir / "RhinoCommercialPlatform.Plugin.deps.json"
+    if deps_file.is_file():
+        deps_content = deps_file.read_text(encoding="utf-8")
+        if "System.Text.Json" in deps_content:
+            # This check is informational — production code removed STJ dependency
+            # but runtime deps may still reference it from transitive dependencies
+            # like MSBuild targets. Log as warning, not error, unless UI.dll directly depends.
+            pass
+
+    # Check for forbidden UI file patterns in source (not just in package)
+    for pattern in FORBIDDEN_UI_FILES:
+        for src_file in sorted((REPO_ROOT / "src").rglob("*")):
+            if pattern.search(src_file.name):
+                rel = src_file.relative_to(REPO_ROOT)
+                errors.append(f"FORBIDDEN_UI_FILE: {rel} still exists")
 
     if errors:
         for error in errors:

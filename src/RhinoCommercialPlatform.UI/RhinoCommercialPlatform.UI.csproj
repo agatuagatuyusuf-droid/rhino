@@ -10,7 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Eto.Forms" PrivateAssets="all" ExcludeAssets="runtime" />
-    <PackageReference Include="System.Text.Json" PrivateAssets="all" ExcludeAssets="runtime" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\RhinoCommercialPlatform.Core\RhinoCommercialPlatform.Core.csproj" />

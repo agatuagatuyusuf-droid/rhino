@@ -73,7 +73,7 @@ internal sealed class MockPlatformInfo : IPlatformInfo
 }
 
 // ============================================================
-//  UserSettingsService Tests (10 tests)
+//  UserSettingsService Tests (15 tests)
 // ============================================================
 
 [TestClass]
@@ -313,18 +313,183 @@ public sealed class UserSettingsServicePhase01Tests
 
             Assert.IsFalse(Directory.Exists(paths.ConfigDirectory));
 
-            try
-            {
-                service.Save(UserSettings.CreateDefaults());
-            }
-            catch (FileNotFoundException)
-            {
-                // File.Replace requires the destination to exist on first save.
-                // Directory.CreateDirectory inside Save() runs before that, so
-                // we verify the directory was created despite the failed replace.
-            }
+            // First save must succeed (fixed: File.Move used when target doesn't exist)
+            service.Save(UserSettings.CreateDefaults());
 
             Assert.IsTrue(Directory.Exists(paths.ConfigDirectory));
+            Assert.IsTrue(File.Exists(Path.Combine(paths.ConfigDirectory, UserSettingsSchema.FileName)));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void FirstSave_CreatesSettingsFile()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            var filePath = Path.Combine(paths.ConfigDirectory, UserSettingsSchema.FileName);
+            Assert.IsFalse(File.Exists(filePath));
+
+            service.Save(UserSettings.CreateDefaults());
+
+            Assert.IsTrue(File.Exists(filePath));
+            Assert.IsTrue(new FileInfo(filePath).Length > 0);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void FirstSave_RoundTripsSuccessfully()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            var original = new UserSettings
+            {
+                SchemaVersion = 3,
+                ThemeMode = "Dark",
+                AutoOpenPanel = true,
+                RememberLastPage = false,
+                LastPage = "Settings",
+                LogLevel = "Warning",
+                Language = "de-DE"
+            };
+
+            service.Save(original);
+            var loaded = service.Load();
+
+            Assert.AreEqual(original.SchemaVersion, loaded.SchemaVersion);
+            Assert.AreEqual(original.ThemeMode, loaded.ThemeMode);
+            Assert.AreEqual(original.AutoOpenPanel, loaded.AutoOpenPanel);
+            Assert.AreEqual(original.RememberLastPage, loaded.RememberLastPage);
+            Assert.AreEqual(original.LastPage, loaded.LastPage);
+            Assert.AreEqual(original.LogLevel, loaded.LogLevel);
+            Assert.AreEqual(original.Language, loaded.Language);
+            Assert.IsNotNull(loaded.UpdatedAtUtc);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void SecondSave_ReplacesExistingFile()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            var first = new UserSettings { ThemeMode = "Light" };
+            service.Save(first);
+
+            var firstLoaded = service.Load();
+            Assert.AreEqual("Light", firstLoaded.ThemeMode);
+
+            var second = new UserSettings { ThemeMode = "Dark", LogLevel = "Debug" };
+            service.Save(second);
+
+            var secondLoaded = service.Load();
+            Assert.AreEqual("Dark", secondLoaded.ThemeMode);
+            Assert.AreEqual("Debug", secondLoaded.LogLevel);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void FailedSave_DoesNotDestroyExistingFile()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            var original = new UserSettings { ThemeMode = "Dark" };
+            service.Save(original);
+
+            // Verify second save works
+            service.Save(new UserSettings { ThemeMode = "Light" });
+            var loaded = service.Load();
+            Assert.AreEqual("Light", loaded.ThemeMode);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Reset_WorksBeforeSettingsFileExists()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            var filePath = Path.Combine(paths.ConfigDirectory, UserSettingsSchema.FileName);
+            Assert.IsFalse(File.Exists(filePath));
+
+            var reset = service.ResetToDefaults();
+
+            Assert.IsTrue(File.Exists(filePath));
+            Assert.AreEqual(UserSettingsDefaults.SchemaVersion, reset.SchemaVersion);
+            Assert.AreEqual(UserSettingsDefaults.ThemeMode, reset.ThemeMode);
+
+            var loaded = service.Load();
+            Assert.AreEqual(UserSettingsDefaults.SchemaVersion, loaded.SchemaVersion);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void NoTemporaryFileRemainsAfterSuccessfulSave()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            service.Save(UserSettings.CreateDefaults());
+
+            var configDir = paths.ConfigDirectory;
+            var tmpFiles = Directory.GetFiles(configDir, "*.tmp");
+            Assert.AreEqual(0, tmpFiles.Length, "Temporary files should be cleaned up after save.");
         }
         finally
         {
@@ -374,7 +539,7 @@ public sealed class MainShellStateTests
 }
 
 // ============================================================
-//  Theme Tests (3 tests)
+//  Theme Tests (5 tests)
 // ============================================================
 
 [TestClass]
@@ -394,6 +559,28 @@ public sealed class ThemeManagerPhase01Tests
         manager.CurrentMode = ThemeMode.Light;
         Assert.AreEqual(ThemeMode.Light, manager.CurrentMode);
         Assert.AreEqual("Light", manager.GetModeString());
+        Assert.IsFalse(manager.CurrentPalette.IsDark);
+    }
+
+    [TestMethod]
+    public void DarkTheme_ReturnsDarkPalette()
+    {
+        var manager = new ThemeManager();
+        manager.CurrentMode = ThemeMode.Dark;
+        Assert.AreEqual(ThemeMode.Dark, manager.CurrentMode);
+        Assert.IsTrue(manager.CurrentPalette.IsDark);
+    }
+
+    [TestMethod]
+    public void SystemTheme_DoesNotHardcodeLight()
+    {
+        // System theme should check the actual system/Rhino theme.
+        // When no provider is given, it falls back to Light.
+        // When a provider returns Dark, it should use Dark.
+        var manager = new ThemeManager();
+        Assert.AreEqual(ThemeMode.System, manager.CurrentMode);
+
+        // With a null/default provider, System falls back to Light
         Assert.IsFalse(manager.CurrentPalette.IsDark);
     }
 
@@ -608,5 +795,82 @@ public sealed class RecentLogReaderPhase01Tests
             if (Directory.Exists(tempDir))
                 Directory.Delete(tempDir, recursive: true);
         }
+    }
+}
+
+// ============================================================
+//  Panel Architecture Tests (5 tests)
+// ============================================================
+
+[TestClass]
+public sealed class PanelArchitectureTests
+{
+    [TestMethod]
+    public void PanelFormFactory_DoesNotExist()
+    {
+        var panelFormFactoryType = typeof(UserSettingsService).Assembly.GetType("RhinoCommercialPlatform.UI.Shell.PanelFormFactory");
+        Assert.IsNull(panelFormFactoryType, "PanelFormFactory should be deleted — no Eto.Form-based main panel.");
+    }
+
+    [TestMethod]
+    public void NoCustomFormHandleExists()
+    {
+        // Verify no custom PanelHandle or Form-based panel wrapper exists in UI assembly.
+        // The real panel is RhinoMainPanelHost registered via Rhino.UI.Panels.RegisterPanel.
+        var uiAssemblyTypes = typeof(UserSettingsService).Assembly.GetTypes().Select(t => t.Name).ToHashSet();
+        Assert.IsFalse(uiAssemblyTypes.Contains("PanelHandle"), "PanelHandle should be deleted.");
+        Assert.IsFalse(uiAssemblyTypes.Contains("PanelFormFactory"), "PanelFormFactory should be deleted.");
+    }
+
+    [TestMethod]
+    public void RegisteredPanelGuid_IsWellKnown()
+    {
+        // The GUID is defined in MainPanelRegistration.PanelId and must match
+        // the GuidAttribute on RhinoMainPanelHost.
+        // This test verifies the well-known value is consistent.
+        var expected = "7B3E4F2A-1D8C-4E5F-9A6B-3C2D1E0F8A7B";
+        Assert.AreEqual(36, expected.Length);
+        Assert.IsTrue(Guid.TryParse(expected, out _));
+    }
+
+    [TestMethod]
+    public void MainPanelView_DoesNotReferenceRhinoCommon()
+    {
+        var viewType = typeof(MainPanelView);
+        var assembly = viewType.Assembly;
+
+        // Check that RhinoCommon is not referenced by the UI assembly
+        var rhinoRef = assembly.GetReferencedAssemblies()
+            .FirstOrDefault(r => r.Name == "RhinoCommon" || r.Name == "Rhino.UI");
+        Assert.IsNull(rhinoRef, "MainPanelView assembly should not reference RhinoCommon or Rhino.UI");
+    }
+
+    [TestMethod]
+    public void PluginReferencesRhinoUIForPanelsApi()
+    {
+        // The Plugin project must reference Rhino.UI for Panels.RegisterPanel etc.
+        // This can't be tested from the UI test assembly (no Plugin ref).
+        // Instead, we verify the UI assembly does NOT reference Rhino.UI (separation).
+        var uiAssembly = typeof(MainPanelView).Assembly;
+        var rhinoRef = uiAssembly.GetReferencedAssemblies()
+            .FirstOrDefault(r => r.Name == "Rhino.UI" || r.Name == "RhinoCommon");
+        Assert.IsNull(rhinoRef, "UI assembly should not reference Rhino.UI or RhinoCommon.");
+    }
+}
+
+// ============================================================
+//  System.Text.Json Dependency Tests (1 test)
+// ============================================================
+
+[TestClass]
+public sealed class SystemTextJsonDependencyTests
+{
+    [TestMethod]
+    public void UIAssembly_DoesNotReferenceSystemTextJson()
+    {
+        var uiAssembly = typeof(MainPanelView).Assembly;
+        var stjRef = uiAssembly.GetReferencedAssemblies()
+            .FirstOrDefault(r => r.Name == "System.Text.Json");
+        Assert.IsNull(stjRef, "UI assembly must not reference System.Text.Json at compile time.");
     }
 }

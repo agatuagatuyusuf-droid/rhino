@@ -4,99 +4,98 @@ using Rhino;
 namespace RhinoCommercialPlatform.Plugin.Panels;
 
 /// <summary>
-/// Manages the main panel lifetime.
-/// Uses a factory-based approach to avoid direct Eto dependency in this project.
+/// Manages the main panel lifetime using Rhino.UI.Panels API.
 /// </summary>
 public static class MainPanelRegistration
 {
     private static readonly object _lock = new object();
-    private static PanelHandle? _panelHandle;
+    private static bool _registered;
 
     public static readonly Guid PanelId = new Guid("7B3E4F2A-1D8C-4E5F-9A6B-3C2D1E0F8A7B");
     public const string PanelName = "RhinoCommercialPlatform";
 
     /// <summary>
-    /// Registers the panel.
+    /// Registers the panel with Rhino's panel system.
+    /// Safe to call multiple times — subsequent calls are no-ops.
     /// </summary>
     public static void Register()
     {
-        RhinoApp.WriteLine($"Panel '{PanelName}' registration prepared.");
-    }
-
-    /// <summary>
-    /// Opens or focuses the main panel.
-    /// </summary>
-    public static bool OpenPanel()
-    {
         lock (_lock)
         {
+            if (_registered)
+            {
+                RhinoApp.WriteLine($"Panel '{PanelName}' already registered.");
+                return;
+            }
+
+            var plugin = RhinoCommercialPlatformPlugin.Instance;
+            if (plugin == null)
+            {
+                RhinoApp.WriteLine($"Cannot register panel '{PanelName}': plugin instance is null.");
+                return;
+            }
+
             try
             {
-                if (_panelHandle != null && _panelHandle.IsVisible)
-                {
-                    _panelHandle.Focus();
-                    RhinoApp.WriteLine($"Panel '{PanelName}' focused.");
-                    return true;
-                }
-
-                if (_panelHandle != null)
-                {
-                    _panelHandle.Show();
-                    RhinoApp.WriteLine($"Panel '{PanelName}' re-shown.");
-                    return true;
-                }
-
-                return CreateAndShowPanel();
+                global::Rhino.UI.Panels.RegisterPanel(plugin, typeof(RhinoMainPanelHost), PanelName, null);
+                _registered = true;
+                RhinoApp.WriteLine($"Panel '{PanelName}' registered successfully.");
             }
             catch (Exception ex)
             {
-                RhinoApp.WriteLine($"Failed to open panel: {ex.Message}");
-                return false;
+                RhinoApp.WriteLine($"Failed to register panel '{PanelName}': {ex.Message}");
             }
         }
     }
 
     /// <summary>
-    /// Closes the panel.
+    /// Opens or focuses the main panel using Rhino's panel system.
+    /// Safe to call multiple times — Rhino handles single-instance.
     /// </summary>
-    public static void ClosePanel()
+    public static bool OpenPanel()
     {
-        lock (_lock)
+        try
         {
-            _panelHandle?.Close();
-            _panelHandle = null;
-            RhinoApp.WriteLine($"Panel '{PanelName}' closed.");
+            global::Rhino.UI.Panels.OpenPanel(typeof(RhinoMainPanelHost));
+            RhinoApp.WriteLine($"Panel '{PanelName}' opened.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            RhinoApp.WriteLine($"Failed to open panel '{PanelName}': {ex.Message}");
+            return false;
         }
     }
 
     /// <summary>
-    /// Whether the panel is visible.
+    /// Closes the main panel using Rhino's panel system.
     /// </summary>
-    public static bool IsPanelVisible() => _panelHandle?.IsVisible ?? false;
-
-    private static bool CreateAndShowPanel()
+    public static void ClosePanel()
     {
-        var plugin = RhinoCommercialPlatformPlugin.Instance;
-        if (plugin?.Runtime == null)
+        try
         {
-            RhinoApp.WriteLine("Runtime is not available.");
+            global::Rhino.UI.Panels.ClosePanel(PanelId);
+            RhinoApp.WriteLine($"Panel '{PanelName}' closed.");
+        }
+        catch (Exception ex)
+        {
+            RhinoApp.WriteLine($"Failed to close panel '{PanelName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Whether the panel is currently visible in Rhino's panel system.
+    /// </summary>
+    public static bool IsPanelVisible()
+    {
+        try
+        {
+            return global::Rhino.UI.Panels.IsPanelVisible(typeof(RhinoMainPanelHost));
+        }
+        catch (Exception ex)
+        {
+            RhinoApp.WriteLine($"Failed to check panel visibility '{PanelName}': {ex.Message}");
             return false;
         }
-
-        var panelService = MainPanelService.GetInstance(plugin.Runtime);
-        var mainView = panelService.GetOrCreatePanelView();
-
-        if (mainView == null)
-        {
-            RhinoApp.WriteLine("Failed to create panel view.");
-            return false;
-        }
-
-        _panelHandle = PanelHandle.Create(mainView, PanelName);
-        _panelHandle.Show();
-
-        plugin.Runtime.Logger.Information("Main panel shown.");
-        RhinoApp.WriteLine($"Panel '{PanelName}' created and shown.");
-        return true;
     }
 }

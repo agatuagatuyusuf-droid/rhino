@@ -1,20 +1,26 @@
 using System;
 using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Text.Json;
 using RhinoCommercialPlatform.Core.Abstractions;
 
 namespace RhinoCommercialPlatform.UI.Settings;
 
+/// <summary>
+/// Thread-safe UserSettings service with atomic file persistence.
+/// Uses DataContractJsonSerializer to avoid System.Text.Json runtime dependency.
+/// </summary>
 public sealed class UserSettingsService : IUserSettingsService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true
-    };
+    private static readonly DataContractJsonSerializer Serializer =
+        new DataContractJsonSerializer(typeof(UserSettings),
+            new DataContractJsonSerializerSettings
+            {
+                UseSimpleDictionaryFormat = false,
+                EmitTypeInformation = EmitTypeInformation.Never,
+                DateTimeFormat = new DateTimeFormat("o")
+            });
 
     private readonly IAppPaths _paths;
     private readonly IAppLogger _logger;
@@ -37,15 +43,26 @@ public sealed class UserSettingsService : IUserSettingsService
 
         try
         {
-            var json = File.ReadAllText(filePath, Encoding.UTF8);
-            return ParseSettings(json);
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (stream.Length == 0)
+            {
+                _logger.Warning("Settings file is empty, returning defaults.");
+                return UserSettings.CreateDefaults();
+            }
+
+            var settings = (UserSettings?)Serializer.ReadObject(stream);
+            if (settings == null)
+                return UserSettings.CreateDefaults();
+
+            SanitizeSettings(settings);
+            return settings;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _logger.Error($"Failed to read settings file: {ex.Message}");
             return UserSettings.CreateDefaults();
         }
-        catch (JsonException ex)
+        catch (SerializationException ex)
         {
             _logger.Error($"Failed to parse settings JSON: {ex.Message}");
             return UserSettings.CreateDefaults();
@@ -70,18 +87,31 @@ public sealed class UserSettingsService : IUserSettingsService
 
         try
         {
-            var json = SerializeSettings(settings);
-            var encodedBytes = Encoding.UTF8.GetBytes(json);
-
-            // Atomic write: write to temp, flush, then replace
+            // Write to temp file atomically
             using (var stream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                stream.Write(encodedBytes, 0, encodedBytes.Length);
+                using (var writer = JsonReaderWriterFactory.CreateJsonWriter(
+                    stream, Encoding.UTF8, ownsStream: false, indent: true, indentChars: "  "))
+                {
+                    Serializer.WriteObject(writer, settings);
+                    writer.Flush();
+                }
                 stream.Flush(true);
             }
 
-            // Replace the old file atomically
-            File.Replace(tempFilePath, filePath, null);
+            // Atomic replacement
+            if (File.Exists(filePath))
+            {
+                // File.Replace atomically replaces the destination with the source
+                File.Replace(tempFilePath, filePath, null);
+            }
+            else
+            {
+                // First save: move temp file to target
+                File.Move(tempFilePath, filePath);
+            }
+
+            _logger.Debug("Settings saved successfully.");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -121,15 +151,15 @@ public sealed class UserSettingsService : IUserSettingsService
 
         try
         {
-            var settings = JsonSerializer.Deserialize<UserSettings>(json, JsonOptions);
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+            var settings = (UserSettings?)Serializer.ReadObject(stream);
             if (settings == null)
                 return UserSettings.CreateDefaults();
 
-            // Validate and sanitize fields
             SanitizeSettings(settings);
             return settings;
         }
-        catch (JsonException)
+        catch (Exception)
         {
             return UserSettings.CreateDefaults();
         }
@@ -137,7 +167,14 @@ public sealed class UserSettingsService : IUserSettingsService
 
     internal static string SerializeSettings(UserSettings settings)
     {
-        return JsonSerializer.Serialize(settings, JsonOptions);
+        using var stream = new MemoryStream();
+        using (var writer = JsonReaderWriterFactory.CreateJsonWriter(
+            stream, Encoding.UTF8, ownsStream: false, indent: true, indentChars: "  "))
+        {
+            Serializer.WriteObject(writer, settings);
+            writer.Flush();
+        }
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     internal static void SanitizeSettings(UserSettings settings)

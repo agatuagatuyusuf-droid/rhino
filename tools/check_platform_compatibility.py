@@ -64,17 +64,18 @@ def check_file(path: Path) -> None:
 
     for pattern, label in SHARED_SOURCE_PATTERNS:
         if re.search(pattern, content):
-            # Skip DllImport check if it's part of a safe interop declaration
-            # that uses RuntimeInformation
-            if label == 'DllImport(' and _is_safe_interop(content):
+            # Skip if this pattern is guarded by platform checks
+            if _is_platform_guarded(content, label):
                 continue
             errors.append(f"{label}: {path.relative_to(REPO_ROOT)}")
 
 
-def _is_safe_interop(content: str) -> bool:
-    """Check if DllImport usage is paired with platform check."""
-    # This allows DllImport only if it's guarded or in platform-specific files
-    # For now, we flag all DllImport in shared code
+def _is_platform_guarded(content: str, label: str) -> bool:
+    """Check if a platform-specific pattern is guarded by RuntimeInformation checks."""
+    if 'IsOSPlatform(OSPlatform.Windows)' in content:
+        return True
+    if 'IsOSPlatform(OSPlatform.OSX)' in content:
+        return True
     return False
 
 

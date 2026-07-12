@@ -3,13 +3,10 @@ using System;
 namespace RhinoCommercialPlatform.Plugin.Panels;
 
 /// <summary>
-/// Panel host placeholder. The actual panel is managed as an Eto Form
-/// by MainPanelRegistration. This class exists for API compatibility.
+/// This type exists solely for backward compatibility.
+/// The real Rhino-managed panel is <see cref="RhinoMainPanelHost"/>.
 /// </summary>
-[Obsolete("Use MainPanelRegistration to open/close the panel.")]
-public sealed class MainPanelHost
+[Obsolete("Use RhinoMainPanelHost instead, which is registered via Rhino.UI.Panels.RegisterPanel.")]
+public static class MainPanelHost
 {
-    private MainPanelHost()
-    {
-    }
 }

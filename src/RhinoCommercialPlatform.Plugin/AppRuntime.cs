@@ -278,18 +278,9 @@ public sealed class AppRuntime : IDisposable
 
     private static ISystemThemeProvider? CreateSystemThemeProvider()
     {
-        // Use RuntimeInformation directly to avoid dependency on Platform.* assemblies
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
-            System.Runtime.InteropServices.OSPlatform.Windows))
-        {
-            return new RhinoCommercialPlatform.Platform.Windows.WindowsSystemThemeProvider();
-        }
-        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
-            System.Runtime.InteropServices.OSPlatform.OSX))
-        {
-            return new RhinoCommercialPlatform.Platform.Mac.MacSystemThemeProvider();
-        }
-
-        return null;
+        // Use a Rhino-aware provider that reads the actual system theme.
+        // The OS-level providers (WindowsSystemThemeProvider, MacSystemThemeProvider)
+        // are kept for non-Rhino hosting scenarios but are not used here.
+        return new PluginSystemThemeProvider();
     }
 }

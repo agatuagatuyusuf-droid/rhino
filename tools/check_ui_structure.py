@@ -46,6 +46,8 @@ def require_not_contains(relative_path: str, forbidden_values: list[str]) -> Non
             )
 
 
+# === Basic project file checks ===
+
 require_file("src/RhinoCommercialPlatform.UI/RhinoCommercialPlatform.UI.csproj")
 
 require_contains(
@@ -63,6 +65,8 @@ require_not_contains(
     ["RhinoCommon"],
 )
 
+# === RhinoCommon only in Plugin project ===
+
 for csproj in sorted((REPO_ROOT / "src").rglob("*.csproj")):
     rel = csproj.relative_to(REPO_ROOT).as_posix()
     if "Plugin" in rel:
@@ -79,10 +83,14 @@ for source_file in sorted((REPO_ROOT / "src").rglob("*.cs")):
     if "RhinoCommon" in content or "using Rhino;" in content:
         errors.append(f"RHINOCOMMON_OUTSIDE_PLUGIN: {rel}")
 
+# === Eto.Forms in UI project ===
+
 require_contains(
     "src/RhinoCommercialPlatform.UI/RhinoCommercialPlatform.UI.csproj",
     ['PackageReference Include="Eto.Forms"'],
 )
+
+# === No WPF/WinForms ===
 
 for csproj in sorted((REPO_ROOT / "src").rglob("*.csproj")):
     rel = csproj.relative_to(REPO_ROOT).as_posix()
@@ -96,6 +104,8 @@ for source_file in sorted((REPO_ROOT / "src").rglob("*.cs")):
     if "using System.Windows;" in content or "using System.Windows.Forms;" in content:
         errors.append(f"WPF_WINFORMS_USING: {rel}")
 
+# === Key files exist ===
+
 require_file("src/RhinoCommercialPlatform.Plugin/Commands/OpenMainPanelCommand.cs")
 require_file("src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs")
 require_file("src/RhinoCommercialPlatform.UI/Shell/MainPanelView.cs")
@@ -107,6 +117,72 @@ for page in pages:
 require_file("src/RhinoCommercialPlatform.UI/Settings/UserSettingsService.cs")
 require_file("src/RhinoCommercialPlatform.UI/Theme/ThemeManager.cs")
 require_file("src/RhinoCommercialPlatform.UI/Diagnostics/DiagnosticReportService.cs")
+
+# === Native Rhino Panel checks ===
+
+plugin_panels_dir = REPO_ROOT / "src/RhinoCommercialPlatform.Plugin/Panels"
+
+# 1. MainPanelRegistration must contain Panels.RegisterPanel
+require_contains(
+    "src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs",
+    ["Panels.RegisterPanel"],
+)
+
+# 2. Must contain Panels.OpenPanel
+require_contains(
+    "src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs",
+    ["Panels.OpenPanel"],
+)
+
+# 3. RhinoMainPanelHost exists and inherits Eto.Forms.Panel
+rhino_host = read_text("src/RhinoCommercialPlatform.Plugin/Panels/RhinoMainPanelHost.cs")
+if ": Panel" not in rhino_host and "class RhinoMainPanelHost" not in rhino_host:
+    errors.append("RhinoMainPanelHost must inherit Panel (Eto.Forms.Panel)")
+
+# 4. RhinoMainPanelHost has GuidAttribute
+if "[Guid(\"7B3E4F2A-1D8C-4E5F-9A6B-3C2D1E0F8A7B\")]" not in rhino_host:
+    errors.append("RhinoMainPanelHost must have GuidAttribute with the well-known GUID")
+
+# 5. PanelFormFactory.cs is deleted
+panel_form_factory = plugin_panels_dir.parent.parent / "UI/Shell/PanelFormFactory.cs"
+if panel_form_factory.exists():
+    errors.append("PanelFormFactory.cs still exists — must be deleted")
+
+# 6. PanelHandle.cs is deleted
+panel_handle = plugin_panels_dir / "PanelHandle.cs"
+if panel_handle.exists():
+    errors.append("PanelHandle.cs still exists — must be deleted")
+
+# 7. No Eto.Form creation in Plugin/Panels
+for cs_file in sorted(plugin_panels_dir.rglob("*.cs")):
+    content = cs_file.read_text(encoding="utf-8-sig")
+    if "new Form(" in content or "new Eto.Forms.Form" in content:
+        errors.append(f"FORBIDDEN_FORM_CREATION: {cs_file.relative_to(REPO_ROOT)} creates Eto Form directly")
+
+# 8. MainPanelView does not reference RhinoCommon
+main_panel_view = read_text("src/RhinoCommercialPlatform.UI/Shell/MainPanelView.cs")
+if "RhinoCommon" in main_panel_view or "using Rhino;" in main_panel_view:
+    errors.append("MainPanelView must not reference RhinoCommon")
+
+# 9. Register does not just print log
+main_reg = read_text("src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs")
+if "registration prepared" in main_reg.lower() and "Panels.RegisterPanel" not in main_reg:
+    errors.append("Register() must call Panels.RegisterPanel, not just log a message")
+
+# 10. Only Plugin references RhinoCommon
+# (already checked above)
+
+# 11. System.Text.Json not referenced in UI csproj
+ui_csproj = read_text("src/RhinoCommercialPlatform.UI/RhinoCommercialPlatform.UI.csproj")
+if "System.Text.Json" in ui_csproj:
+    errors.append("UI project must not reference System.Text.Json")
+
+# 12. Directory.Packages.props does not have System.Text.Json
+packages_props = read_text("Directory.Packages.props")
+if "System.Text.Json" in packages_props:
+    errors.append("Directory.Packages.props must not reference System.Text.Json")
+
+# === Output ===
 
 if errors:
     for error in errors:
