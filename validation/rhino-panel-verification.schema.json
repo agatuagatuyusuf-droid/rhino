@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Rhino Panel Verification Schema",
+  "description": "Schema for rhino-panel-verification evidence files. Records the results of panel registration, open, and visibility checks.",
+  "type": "object",
+  "required": [
+    "commit",
+    "platform",
+    "rhinoVersion",
+    "testedAtUtc",
+    "panelRegistered",
+    "panelOpened",
+    "panelVisible",
+    "finalStatus"
+  ],
+  "properties": {
+    "commit": {
+      "type": "string",
+      "description": "Git commit SHA of the tested code (testedCommit).",
+      "minLength": 7
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["windows", "macos"],
+      "description": "Platform on which the verification was performed."
+    },
+    "rhinoVersion": {
+      "type": ["string", "null"],
+      "description": "Rhino version detected (e.g., \"8.30\"). Null if Rhino not found."
+    },
+    "testedAtUtc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp of the verification."
+    },
+    "panelRegistered": {
+      "type": ["boolean", "string"],
+      "description": "Whether panel registration succeeded. \"BLOCKED\" if verification was blocked.",
+      "anyOf": [
+        { "type": "boolean" },
+        { "type": "string", "enum": ["BLOCKED"] }
+      ]
+    },
+    "panelOpened": {
+      "type": ["boolean", "string"],
+      "description": "Whether panel was opened successfully. \"BLOCKED\" if verification was blocked.",
+      "anyOf": [
+        { "type": "boolean" },
+        { "type": "string", "enum": ["BLOCKED"] }
+      ]
+    },
+    "panelVisible": {
+      "type": ["boolean", "string"],
+      "description": "Whether panel is visible in Rhino's panel container. \"BLOCKED\" if verification was blocked. May be false in headless CI.",
+      "anyOf": [
+        { "type": "boolean" },
+        { "type": "string", "enum": ["BLOCKED"] }
+      ]
+    },
+    "gatewayCheck": {
+      "type": ["boolean", "string"],
+      "description": "Whether the RhinoPanelGateway responded correctly.",
+      "anyOf": [
+        { "type": "boolean" },
+        { "type": "string", "enum": ["BLOCKED"] }
+      ]
+    },
+    "rhpInstalled": {
+      "type": ["boolean", "string"],
+      "description": "Whether the .rhp file was found in the Rhino plugins directory."
+    },
+    "pluginLoadResult": {
+      "type": ["string", "null"],
+      "description": "Result of plugin load: \"SUCCESS\", \"BLOCKED\", or error detail."
+    },
+    "settingsFileExists": {
+      "type": ["boolean", "string", "null"],
+      "description": "Whether the user settings file was found after first save."
+    },
+    "logFileExists": {
+      "type": ["boolean", "string", "null"],
+      "description": "Whether the runtime log file was created."
+    },
+    "macOSAccessibilityGranted": {
+      "type": ["boolean", "string", "null"],
+      "description": "macOS-specific: whether Accessibility permissions were granted for automation."
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Human-readable notes about the verification run."
+    },
+    "blocker": {
+      "type": ["string", "null"],
+      "description": "If finalStatus is BLOCKED, describes the blocker."
+    },
+    "finalStatus": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "BLOCKED"],
+      "description": "Overall verification status."
+    }
+  },
+  "additionalProperties": false
+}

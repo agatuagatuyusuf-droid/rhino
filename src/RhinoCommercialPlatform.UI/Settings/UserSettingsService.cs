@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Threading;
 using RhinoCommercialPlatform.Core.Abstractions;
 
 namespace RhinoCommercialPlatform.UI.Settings;
@@ -10,20 +11,15 @@ namespace RhinoCommercialPlatform.UI.Settings;
 /// <summary>
 /// Thread-safe UserSettings service with atomic file persistence.
 /// Uses DataContractJsonSerializer to avoid System.Text.Json runtime dependency.
+///
+/// Thread safety: ReaderWriterLockSlim guards Load/Save/Reset concurrency.
+/// Temp files use a UUID suffix to avoid multi-process collision.
 /// </summary>
 public sealed class UserSettingsService : IUserSettingsService
 {
-    private static readonly DataContractJsonSerializer Serializer =
-        new DataContractJsonSerializer(typeof(UserSettings),
-            new DataContractJsonSerializerSettings
-            {
-                UseSimpleDictionaryFormat = false,
-                EmitTypeInformation = EmitTypeInformation.Never,
-                DateTimeFormat = new DateTimeFormat("o")
-            });
-
     private readonly IAppPaths _paths;
     private readonly IAppLogger _logger;
+    private readonly ReaderWriterLockSlim _rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
     public UserSettingsService(IAppPaths paths, IAppLogger logger)
     {
@@ -33,39 +29,48 @@ public sealed class UserSettingsService : IUserSettingsService
 
     public UserSettings Load()
     {
-        var filePath = GetSettingsFilePath();
-
-        if (!File.Exists(filePath))
-        {
-            _logger.Debug("Settings file not found, returning defaults.");
-            return UserSettings.CreateDefaults();
-        }
-
+        _rwLock.EnterReadLock();
         try
         {
-            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (stream.Length == 0)
+            var filePath = GetSettingsFilePath();
+
+            if (!File.Exists(filePath))
             {
-                _logger.Warning("Settings file is empty, returning defaults.");
+                _logger.Debug("Settings file not found, returning defaults.");
                 return UserSettings.CreateDefaults();
             }
 
-            var settings = (UserSettings?)Serializer.ReadObject(stream);
-            if (settings == null)
-                return UserSettings.CreateDefaults();
+            try
+            {
+                using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                if (stream.Length == 0)
+                {
+                    _logger.Warning("Settings file is empty, returning defaults.");
+                    return UserSettings.CreateDefaults();
+                }
 
-            SanitizeSettings(settings);
-            return settings;
+                var serializer = CreateSerializer();
+                var settings = (UserSettings?)serializer.ReadObject(stream);
+                if (settings == null)
+                    return UserSettings.CreateDefaults();
+
+                SanitizeSettings(settings);
+                return settings;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _logger.Error($"Failed to read settings file: {ex.Message}");
+                return UserSettings.CreateDefaults();
+            }
+            catch (SerializationException ex)
+            {
+                _logger.Error($"Failed to parse settings JSON: {ex.Message}");
+                return UserSettings.CreateDefaults();
+            }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        finally
         {
-            _logger.Error($"Failed to read settings file: {ex.Message}");
-            return UserSettings.CreateDefaults();
-        }
-        catch (SerializationException ex)
-        {
-            _logger.Error($"Failed to parse settings JSON: {ex.Message}");
-            return UserSettings.CreateDefaults();
+            _rwLock.ExitReadLock();
         }
     }
 
@@ -76,8 +81,40 @@ public sealed class UserSettingsService : IUserSettingsService
 
         settings.UpdatedAtUtc = DateTime.UtcNow;
 
-        var filePath = GetSettingsFilePath();
-        var tempFilePath = filePath + ".tmp";
+        _rwLock.EnterWriteLock();
+        try
+        {
+            var filePath = GetSettingsFilePath();
+            SaveCore(settings, filePath);
+        }
+        finally
+        {
+            _rwLock.ExitWriteLock();
+        }
+    }
+
+    public UserSettings ResetToDefaults()
+    {
+        var defaults = UserSettings.CreateDefaults();
+        defaults.UpdatedAtUtc = DateTime.UtcNow;
+
+        _rwLock.EnterWriteLock();
+        try
+        {
+            var filePath = GetSettingsFilePath();
+            SaveCore(defaults, filePath);
+        }
+        finally
+        {
+            _rwLock.ExitWriteLock();
+        }
+
+        return defaults;
+    }
+
+    private void SaveCore(UserSettings settings, string filePath)
+    {
+        var tempFilePath = filePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
         var dirPath = Path.GetDirectoryName(filePath);
 
         if (!string.IsNullOrEmpty(dirPath) && !Directory.Exists(dirPath))
@@ -87,27 +124,25 @@ public sealed class UserSettingsService : IUserSettingsService
 
         try
         {
-            // Write to temp file atomically
+            var serializer = CreateSerializer();
+
             using (var stream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 using (var writer = JsonReaderWriterFactory.CreateJsonWriter(
                     stream, Encoding.UTF8, ownsStream: false, indent: true, indentChars: "  "))
                 {
-                    Serializer.WriteObject(writer, settings);
+                    serializer.WriteObject(writer, settings);
                     writer.Flush();
                 }
                 stream.Flush(true);
             }
 
-            // Atomic replacement
             if (File.Exists(filePath))
             {
-                // File.Replace atomically replaces the destination with the source
                 File.Replace(tempFilePath, filePath, null);
             }
             else
             {
-                // First save: move temp file to target
                 File.Move(tempFilePath, filePath);
             }
 
@@ -117,7 +152,6 @@ public sealed class UserSettingsService : IUserSettingsService
         {
             _logger.Error($"Failed to save settings file: {ex.Message}");
 
-            // Clean up temp file if it exists
             try
             {
                 if (File.Exists(tempFilePath))
@@ -125,18 +159,10 @@ public sealed class UserSettingsService : IUserSettingsService
             }
             catch
             {
-                // Best effort cleanup
             }
 
             throw;
         }
-    }
-
-    public UserSettings ResetToDefaults()
-    {
-        var defaults = UserSettings.CreateDefaults();
-        Save(defaults);
-        return defaults;
     }
 
     private string GetSettingsFilePath()
@@ -151,8 +177,9 @@ public sealed class UserSettingsService : IUserSettingsService
 
         try
         {
+            var serializer = CreateSerializer();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
-            var settings = (UserSettings?)Serializer.ReadObject(stream);
+            var settings = (UserSettings?)serializer.ReadObject(stream);
             if (settings == null)
                 return UserSettings.CreateDefaults();
 
@@ -167,19 +194,30 @@ public sealed class UserSettingsService : IUserSettingsService
 
     internal static string SerializeSettings(UserSettings settings)
     {
+        var serializer = CreateSerializer();
         using var stream = new MemoryStream();
         using (var writer = JsonReaderWriterFactory.CreateJsonWriter(
             stream, Encoding.UTF8, ownsStream: false, indent: true, indentChars: "  "))
         {
-            Serializer.WriteObject(writer, settings);
+            serializer.WriteObject(writer, settings);
             writer.Flush();
         }
         return Encoding.UTF8.GetString(stream.ToArray());
     }
 
+    private static DataContractJsonSerializer CreateSerializer()
+    {
+        return new DataContractJsonSerializer(typeof(UserSettings),
+            new DataContractJsonSerializerSettings
+            {
+                UseSimpleDictionaryFormat = false,
+                EmitTypeInformation = EmitTypeInformation.Never,
+                DateTimeFormat = new DateTimeFormat("o")
+            });
+    }
+
     internal static void SanitizeSettings(UserSettings settings)
     {
-        // Validate ThemeMode
         if (!string.IsNullOrEmpty(settings.ThemeMode))
         {
             var valid = false;
@@ -200,7 +238,6 @@ public sealed class UserSettingsService : IUserSettingsService
             settings.ThemeMode = UserSettingsDefaults.ThemeMode;
         }
 
-        // Validate LastPage
         if (!string.IsNullOrEmpty(settings.LastPage))
         {
             var valid = false;
@@ -221,7 +258,6 @@ public sealed class UserSettingsService : IUserSettingsService
             settings.LastPage = UserSettingsDefaults.LastPage;
         }
 
-        // Validate LogLevel
         if (!string.IsNullOrEmpty(settings.LogLevel))
         {
             var valid = false;
@@ -242,11 +278,9 @@ public sealed class UserSettingsService : IUserSettingsService
             settings.LogLevel = UserSettingsDefaults.LogLevel;
         }
 
-        // Default Language
         if (string.IsNullOrWhiteSpace(settings.Language))
             settings.Language = UserSettingsDefaults.Language;
 
-        // Clamp SchemaVersion
         if (settings.SchemaVersion <= 0)
             settings.SchemaVersion = UserSettingsDefaults.SchemaVersion;
     }

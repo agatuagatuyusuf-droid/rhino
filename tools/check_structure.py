@@ -40,12 +40,20 @@ REQUIRED_FILES = [
     "src/RhinoCommercialPlatform.Plugin/RhinoCommercialPlatformPlugin.cs",
     "src/RhinoCommercialPlatform.Plugin/AppRuntime.cs",
     "src/RhinoCommercialPlatform.Plugin/Commands/PlatformStatusCommand.cs",
+    "src/RhinoCommercialPlatform.Plugin/Commands/VerifyPanelCommand.cs",
     "src/RhinoCommercialPlatform.Plugin/Properties/AssemblyInfo.cs",
+    "src/RhinoCommercialPlatform.Platform.Abstractions/IRhinoPanelGateway.cs",
+    "src/RhinoCommercialPlatform.Platform.Abstractions/ISystemThemeProvider.cs",
+    "src/RhinoCommercialPlatform.Platform.Abstractions/IExternalLauncher.cs",
+    "src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs",
+    "src/RhinoCommercialPlatform.Plugin/Panels/RhinoPanelGateway.cs",
+    "src/RhinoCommercialPlatform.Plugin/Panels/RhinoMainPanelHost.cs",
     "tests/RhinoCommercialPlatform.UnitTests/RhinoCommercialPlatform.UnitTests.csproj",
     "tests/RhinoCommercialPlatform.UnitTests/AppPathsTests.cs",
     "tests/RhinoCommercialPlatform.UnitTests/SecretRedactorTests.cs",
     "tests/RhinoCommercialPlatform.UnitTests/ModuleRegistryTests.cs",
     "tests/RhinoCommercialPlatform.UnitTests/FileAppLoggerTests.cs",
+    "tests/RhinoCommercialPlatform.UnitTests/Phase01Tests.cs",
     "tests/RhinoCommercialPlatform.Foundation.SmokeTests/RhinoCommercialPlatform.Foundation.SmokeTests.csproj",
     "tests/RhinoCommercialPlatform.Foundation.SmokeTests/Program.cs",
     "tools/check_structure.py",
@@ -54,12 +62,15 @@ REQUIRED_FILES = [
     "tools/check_validation_failfast.ps1",
     "tools/run_validation.ps1",
     "tools/check_platform_compatibility.py",
+    "tools/check_test_package.py",
+    "tools/package_test_artifacts.py",
     "docs/architecture.md",
     "docs/phases.md",
     "docs/manual-rhino-smoke.md",
     "docs/cross-platform-policy.md",
     "docs/manual-rhino-smoke-windows.md",
     "docs/manual-rhino-smoke-macos.md",
+    "validation/rhino-panel-verification.schema.json",
 ]
 
 EXPECTED_PROJECTS = [
@@ -68,6 +79,7 @@ EXPECTED_PROJECTS = [
     r"src\RhinoCommercialPlatform.Infrastructure\RhinoCommercialPlatform.Infrastructure.csproj",
     r"src\RhinoCommercialPlatform.Modules.Foundation\RhinoCommercialPlatform.Modules.Foundation.csproj",
     r"src\RhinoCommercialPlatform.Plugin\RhinoCommercialPlatform.Plugin.csproj",
+    r"src\RhinoCommercialPlatform.Platform.Abstractions\RhinoCommercialPlatform.Platform.Abstractions.csproj",
     r"tests\RhinoCommercialPlatform.UnitTests\RhinoCommercialPlatform.UnitTests.csproj",
     r"tests\RhinoCommercialPlatform.Foundation.SmokeTests\RhinoCommercialPlatform.Foundation.SmokeTests.csproj",
 ]
@@ -190,6 +202,64 @@ require_not_contains(
 )
 
 require_contains(
+    "src/RhinoCommercialPlatform.Plugin/Commands/VerifyPanelCommand.cs",
+    [
+        'EnglishName => "RCP_VerifyPanel"',
+        "MainPanelRegistration",
+        "EnsureRegistered",
+        "RCP_VERIFY:",
+        "RCP_PANEL_VERIFY_PASS",
+        "RCP_PANEL_VERIFY_FAIL",
+    ],
+)
+
+require_contains(
+    "src/RhinoCommercialPlatform.Platform.Abstractions/IRhinoPanelGateway.cs",
+    ["GetPanel"],
+)
+
+require_not_contains(
+    "src/RhinoCommercialPlatform.Platform.Abstractions/IRhinoPanelGateway.cs",
+    ["IsPanelRegistered"],
+)
+
+require_contains(
+    "src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs",
+    [
+        "IRhinoPanelGateway",
+        "EnsureRegistered",
+        "throw new InvalidOperationException",
+        "RegistrationState",
+        "Succeeded",
+        "Failed",
+    ],
+)
+
+require_contains(
+    "src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs",
+    [
+        "private static RegistrationState _state",
+        "internal static void SetGateway",
+        "EnsureRegistered()",
+        "IsPanelVisible",
+        "GetPanel",
+    ],
+)
+
+require_not_contains(
+    "src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs",
+    ["IsPanelRegistered("],
+)
+
+require_contains(
+    "src/RhinoCommercialPlatform.Plugin/Panels/RhinoPanelGateway.cs",
+    [
+        "IRhinoPanelGateway",
+        "Rhino.UI.Panels",
+    ],
+)
+
+require_contains(
     ".github/workflows/ci.yml",
     [
         "windows-latest",
@@ -198,7 +268,18 @@ require_contains(
         "actions/checkout@v4",
         "actions/setup-dotnet@v4",
         "actions/setup-python@v5",
+        "SOURCE_COMMIT",
+        "TESTED_COMMIT",
+        "${{ github.event.pull_request.head.sha || github.sha }}",
+        "${{ github.sha }}",
+        "src-${{",
+        "-test-${{",
     ],
+)
+
+require_contains(
+    ".gitignore",
+    ["rhino-panel-verification.json"],
 )
 
 require_not_contains(
@@ -241,11 +322,23 @@ require_contains(
     ],
 )
 
+require_contains(
+    "validation/rhino-panel-verification.schema.json",
+    [
+        "panelRegistered",
+        "panelOpened",
+        "panelVisible",
+        "finalStatus",
+        "Rhino Panel Verification Schema",
+    ],
+)
+
 non_rhino_projects = [
     "src/RhinoCommercialPlatform.Core",
     "src/RhinoCommercialPlatform.Modules.Abstractions",
     "src/RhinoCommercialPlatform.Infrastructure",
     "src/RhinoCommercialPlatform.Modules.Foundation",
+    "src/RhinoCommercialPlatform.Platform.Abstractions",
 ]
 
 for project_directory in non_rhino_projects:

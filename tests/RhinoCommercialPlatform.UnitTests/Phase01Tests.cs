@@ -4,8 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RhinoCommercialPlatform.Core.Abstractions;
+using RhinoCommercialPlatform.Platform.Abstractions;
 using RhinoCommercialPlatform.Core.Runtime;
 using RhinoCommercialPlatform.Modules.Abstractions;
 using RhinoCommercialPlatform.UI.Diagnostics;
@@ -872,5 +874,240 @@ public sealed class SystemTextJsonDependencyTests
         var stjRef = uiAssembly.GetReferencedAssemblies()
             .FirstOrDefault(r => r.Name == "System.Text.Json");
         Assert.IsNull(stjRef, "UI assembly must not reference System.Text.Json at compile time.");
+    }
+}
+
+// ============================================================
+//  PanelGatewayContract Tests (6 tests)
+// ============================================================
+
+internal sealed class MockRhinoPanelGateway : IRhinoPanelGateway
+{
+    public Func<object, Type, string, object?, bool>? OnRegisterPanel { get; set; }
+    public Func<Type, bool>? OnOpenPanel { get; set; }
+    public Action<Guid>? OnClosePanel { get; set; }
+    public Func<Type, bool>? OnIsPanelVisible { get; set; }
+    public Func<Guid, object?>? OnGetPanel { get; set; }
+
+    public bool RegisterPanel(object pluginInstance, Type panelType, string panelName, object? icon)
+        => OnRegisterPanel?.Invoke(pluginInstance, panelType, panelName, icon) ?? true;
+    public bool OpenPanel(Type panelHostType) => OnOpenPanel?.Invoke(panelHostType) ?? true;
+    public void ClosePanel(Guid panelId) => OnClosePanel?.Invoke(panelId);
+    public bool IsPanelVisible(Type panelHostType) => OnIsPanelVisible?.Invoke(panelHostType) ?? true;
+    public object? GetPanel(Guid panelId) => OnGetPanel?.Invoke(panelId);
+}
+
+[TestClass]
+public sealed class PanelGatewayContractTests
+{
+    [TestMethod]
+    public void RegisterPanel_ReturnsTrueOnSuccess()
+    {
+        var gateway = new MockRhinoPanelGateway();
+        gateway.OnRegisterPanel = (_, _, _, _) => true;
+        var result = gateway.RegisterPanel(new object(), typeof(object), "Test", null);
+        Assert.IsTrue(result);
+    }
+
+    [TestMethod]
+    public void RegisterPanel_ReturnsFalseOnFailure()
+    {
+        var gateway = new MockRhinoPanelGateway();
+        gateway.OnRegisterPanel = (_, _, _, _) => false;
+        var result = gateway.RegisterPanel(new object(), typeof(object), "Test", null);
+        Assert.IsFalse(result);
+    }
+
+    [TestMethod]
+    public void OpenPanel_ReturnsGatewayResult()
+    {
+        var gateway = new MockRhinoPanelGateway();
+        gateway.OnOpenPanel = _ => true;
+        Assert.IsTrue(gateway.OpenPanel(typeof(object)));
+
+        gateway.OnOpenPanel = _ => false;
+        Assert.IsFalse(gateway.OpenPanel(typeof(object)));
+    }
+
+    [TestMethod]
+    public void ClosePanel_InvokesGatewayAction()
+    {
+        var calls = 0;
+        var gateway = new MockRhinoPanelGateway();
+        gateway.OnClosePanel = _ => calls++;
+        gateway.ClosePanel(Guid.NewGuid());
+        gateway.ClosePanel(Guid.NewGuid());
+        Assert.AreEqual(2, calls);
+    }
+
+    [TestMethod]
+    public void IsPanelVisible_ReturnsGatewayResult()
+    {
+        var gateway = new MockRhinoPanelGateway();
+        gateway.OnIsPanelVisible = _ => true;
+        Assert.IsTrue(gateway.IsPanelVisible(typeof(object)));
+
+        gateway.OnIsPanelVisible = _ => false;
+        Assert.IsFalse(gateway.IsPanelVisible(typeof(object)));
+    }
+
+    [TestMethod]
+    public void GetPanel_ReturnsPanelInstance()
+    {
+        var gateway = new MockRhinoPanelGateway();
+        gateway.OnGetPanel = _ => new object();
+        Assert.IsNotNull(gateway.GetPanel(Guid.NewGuid()));
+
+        gateway.OnGetPanel = _ => null;
+        Assert.IsNull(gateway.GetPanel(Guid.NewGuid()));
+    }
+}
+
+// ============================================================
+//  UserSettings Concurrency Tests (5 tests)
+// ============================================================
+
+[TestClass]
+public sealed class UserSettingsConcurrencyTests
+{
+    [TestMethod]
+    public void ConcurrentSaves_DoNotCorruptFile()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+            Parallel.For(0, 20, options, i =>
+            {
+                var s = new UserSettings { ThemeMode = i % 2 == 0 ? "Dark" : "Light" };
+                service.Save(s);
+            });
+
+            var loaded = service.Load();
+            Assert.IsNotNull(loaded);
+            Assert.IsTrue(loaded.ThemeMode == "Dark" || loaded.ThemeMode == "Light");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void ConcurrentLoadAndSave_DoesNotThrow()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            service.Save(UserSettings.CreateDefaults());
+
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+            Parallel.For(0, 20, options, i =>
+            {
+                if (i % 2 == 0)
+                    service.Load();
+                else
+                {
+                    var s = new UserSettings { ThemeMode = i % 2 == 0 ? "Dark" : "Light" };
+                    service.Save(s);
+                }
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void ConcurrentSaves_LeaveNoTempFiles()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+            Parallel.For(0, 20, options, i =>
+            {
+                service.Save(UserSettings.CreateDefaults());
+            });
+
+            var tmpFiles = Directory.GetFiles(paths.ConfigDirectory, "*.tmp");
+            Assert.AreEqual(0, tmpFiles.Length, "No temporary files should remain after concurrent saves.");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Reset_DoesNotDeadlock()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            service.Save(UserSettings.CreateDefaults());
+
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
+            Parallel.For(0, 20, options, i =>
+            {
+                if (i % 3 == 0)
+                    service.ResetToDefaults();
+                else if (i % 3 == 1)
+                    service.Load();
+                else
+                    service.Save(new UserSettings { ThemeMode = "Dark" });
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void SavedFile_IsAlwaysReadableJson()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        try
+        {
+            var paths = new TestPaths(tempDir);
+            var logger = new TestLogger();
+            var service = new UserSettingsService(paths, logger);
+
+            service.Save(new UserSettings { ThemeMode = "Dark", LogLevel = "Debug" });
+
+            var filePath = Path.Combine(paths.ConfigDirectory, UserSettingsSchema.FileName);
+            var json = File.ReadAllText(filePath);
+
+            using var doc = JsonDocument.Parse(json);
+            Assert.IsTrue(doc.RootElement.TryGetProperty("themeMode", out var mode));
+            Assert.AreEqual("Dark", mode.GetString());
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
     }
 }

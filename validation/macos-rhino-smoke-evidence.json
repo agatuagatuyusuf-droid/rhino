@@ -1,5 +1,6 @@
 {
   "commit": "ebd5a5a4957281b1de4f397cd75cf41a21fbbff4",
+  "testedCommit": "ebd5a5a4957281b1de4f397cd75cf41a21fbbff4",
   "artifactName": "RCP-macos-net7.0-ebd5a5a",
   "artifactSha256": "pending_ci_build",
   "rhinoAppPath": "/Applications/Rhino 8.app",
@@ -28,7 +29,11 @@
     "The plugin .rhp file is in the correct user plugin directory for auto-discovery on next Rhino restart.",
     "System.Text.Json dependency: removed from production code; UI.dll does not reference System.Text.Json.",
     "UserSettingsService first-save: fixed (File.Move used when target does not exist).",
-    "System theme: PluginSystemThemeProvider reads actual macOS AppleInterfaceStyle via 'defaults' command."
+    "System theme: PluginSystemThemeProvider reads actual macOS AppleInterfaceStyle via /usr/bin/defaults with timeout.",
+    "UserSettingsService: ReaderWriterLockSlim added for thread safety; UUID temp file suffix for multi-process safety.",
+    "MainPanelRegistration: fake success fixed — registration failure throws, OpenPanel checks EnsureRegistered first.",
+    "IRhinoPanelGateway interface created; RhinoPanelGateway implementation separates Rhino UI API from business logic.",
+    "RCP_VerifyPanel command available for structured panel verification output."
   ],
   "blocker": "macOS Accessibility / AppleScript automation unavailable for Rhino 8 command execution. Manual user interaction required to verify panel in Rhino."
 }

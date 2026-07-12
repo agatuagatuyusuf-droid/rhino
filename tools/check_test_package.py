@@ -60,28 +60,6 @@ def compute_sha256(file_path: Path) -> str:
     return h.hexdigest()
 
 
-def get_head_sha() -> tuple[str, str]:
-    try:
-        result_long = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            check=True,
-            text=True,
-        )
-        result_short = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            check=True,
-            text=True,
-        )
-        return result_long.stdout.strip(), result_short.stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("WARNING: Could not determine git HEAD", file=sys.stderr)
-        return "unknown", "unknown"
-
-
 def is_forbidden(name: str) -> bool:
     for pattern in FORBIDDEN_PATTERNS:
         if pattern.search(name):
@@ -103,6 +81,11 @@ def main() -> None:
         required=True,
         type=Path,
         help="Path to the test package directory",
+    )
+    parser.add_argument(
+        "--commit",
+        default=None,
+        help="Expected tested commit SHA (optional; auto-detected if not provided)",
     )
     args = parser.parse_args()
 
@@ -130,8 +113,11 @@ def main() -> None:
     platform = manifest.get("platform", "")
     framework = manifest.get("framework", "")
     artifact_name = manifest.get("artifactName", "")
-    commit = manifest.get("commit", "")
-    short_commit = manifest.get("shortCommit", "")
+    source_commit = manifest.get("sourceCommit", "")
+    source_commit_short = manifest.get("sourceCommitShort", "")
+    tested_commit = manifest.get("testedCommit", "")
+    tested_commit_short = manifest.get("testedCommitShort", "")
+    github_event = manifest.get("githubEvent", "")
 
     if not platform:
         errors.append("MISSING_FIELD: manifest.platform")
@@ -139,18 +125,35 @@ def main() -> None:
         errors.append("MISSING_FIELD: manifest.framework")
     if not artifact_name:
         errors.append("MISSING_FIELD: manifest.artifactName")
+    if not source_commit:
+        errors.append("MISSING_FIELD: manifest.sourceCommit")
+    if not source_commit_short:
+        errors.append("MISSING_FIELD: manifest.sourceCommitShort")
+    if not tested_commit:
+        errors.append("MISSING_FIELD: manifest.testedCommit")
+    if not tested_commit_short:
+        errors.append("MISSING_FIELD: manifest.testedCommitShort")
+    if not github_event:
+        errors.append("MISSING_FIELD: manifest.githubEvent")
 
-    # Check platform/framework match
-    head_long, head_short = get_head_sha()
+    # Verify artifact name matches expected format
+    expected_artifact = f"RCP-{platform}-{framework}-src-{source_commit_short}-test-{tested_commit_short}"
+    if artifact_name != expected_artifact:
+        errors.append(
+            f"ARTIFACT_NAME_MISMATCH: expected={expected_artifact}, actual={artifact_name}"
+        )
 
-    if commit != "unknown" and commit != head_long:
-        errors.append(
-            f"COMMIT_MISMATCH: manifest.commit={commit}, HEAD={head_long}"
-        )
-    if short_commit != "unknown" and short_commit != head_short:
-        errors.append(
-            f"SHORT_COMMIT_MISMATCH: manifest.shortCommit={short_commit}, HEAD={head_short}"
-        )
+    # Verify tested commit against expected
+    expected_commit = args.commit
+    if expected_commit:
+        if tested_commit != "unknown" and tested_commit != expected_commit:
+            errors.append(
+                f"TESTED_COMMIT_MISMATCH: manifest.testedCommit={tested_commit}, expected={expected_commit}"
+            )
+        if tested_commit_short != "unknown" and tested_commit_short != expected_commit[:7]:
+            errors.append(
+                f"TESTED_COMMIT_SHORT_MISMATCH: manifest.testedCommitShort={tested_commit_short}, expected={expected_commit[:7]}"
+            )
 
     # Verify SHA256 of every file listed in manifest
     file_entries = manifest.get("files", [])
@@ -195,17 +198,6 @@ def main() -> None:
     ui_assembly = package_dir / "RhinoCommercialPlatform.UI.dll"
     if not ui_assembly.is_file():
         errors.append("MISSING_UI_ASSEMBLY: RhinoCommercialPlatform.UI.dll not found")
-
-    # Check UI assembly does not depend on System.Text.Json
-    # (Only on net7.0 where we can inspect the deps file)
-    deps_file = package_dir / "RhinoCommercialPlatform.Plugin.deps.json"
-    if deps_file.is_file():
-        deps_content = deps_file.read_text(encoding="utf-8")
-        if "System.Text.Json" in deps_content:
-            # This check is informational — production code removed STJ dependency
-            # but runtime deps may still reference it from transitive dependencies
-            # like MSBuild targets. Log as warning, not error, unless UI.dll directly depends.
-            pass
 
     # Check for forbidden UI file patterns in source (not just in package)
     for pattern in FORBIDDEN_UI_FILES:

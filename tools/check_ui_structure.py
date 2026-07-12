@@ -122,16 +122,16 @@ require_file("src/RhinoCommercialPlatform.UI/Diagnostics/DiagnosticReportService
 
 plugin_panels_dir = REPO_ROOT / "src/RhinoCommercialPlatform.Plugin/Panels"
 
-# 1. MainPanelRegistration must contain Panels.RegisterPanel
+# 1. MainPanelRegistration must use gateway.RegisterPanel (via IRhinoPanelGateway)
 require_contains(
     "src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs",
-    ["Panels.RegisterPanel"],
+    ["gateway.RegisterPanel"],
 )
 
-# 2. Must contain Panels.OpenPanel
+# 2. Must use gateway.OpenPanel (via IRhinoPanelGateway)
 require_contains(
     "src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs",
-    ["Panels.OpenPanel"],
+    ["gateway.OpenPanel"],
 )
 
 # 3. RhinoMainPanelHost exists and inherits Eto.Forms.Panel
@@ -166,8 +166,8 @@ if "RhinoCommon" in main_panel_view or "using Rhino;" in main_panel_view:
 
 # 9. Register does not just print log
 main_reg = read_text("src/RhinoCommercialPlatform.Plugin/Panels/MainPanelRegistration.cs")
-if "registration prepared" in main_reg.lower() and "Panels.RegisterPanel" not in main_reg:
-    errors.append("Register() must call Panels.RegisterPanel, not just log a message")
+if "registration prepared" in main_reg.lower() and "RegisterPanel" not in main_reg:
+    errors.append("Register() must call RegisterPanel, not just log a message")
 
 # 10. Only Plugin references RhinoCommon
 # (already checked above)
@@ -181,6 +181,10 @@ if "System.Text.Json" in ui_csproj:
 packages_props = read_text("Directory.Packages.props")
 if "System.Text.Json" in packages_props:
     errors.append("Directory.Packages.props must not reference System.Text.Json")
+
+# === Validation schema file ===
+
+require_file("validation/rhino-panel-verification.schema.json")
 
 # === Output ===
 

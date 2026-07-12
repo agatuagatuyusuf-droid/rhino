@@ -8,7 +8,6 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -45,35 +44,6 @@ def compute_sha256(file_path: Path) -> str:
                 break
             h.update(chunk)
     return h.hexdigest()
-
-
-def get_short_sha() -> str:
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            check=True,
-            text=True,
-        )
-        return result.stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("WARNING: Could not determine git SHA, using 'unknown'", file=sys.stderr)
-        return "unknown"
-
-
-def get_long_sha() -> str:
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            check=True,
-            text=True,
-        )
-        return result.stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return "unknown"
 
 
 def get_version() -> str:
@@ -143,6 +113,9 @@ def create_manifest(
     platform: str,
     framework: str,
     configuration: str,
+    source_commit: str,
+    tested_commit: str,
+    github_event: str,
     files: list[tuple[str, str]],
 ) -> dict:
     return {
@@ -151,8 +124,11 @@ def create_manifest(
         "platform": platform,
         "framework": framework,
         "configuration": configuration,
-        "commit": get_long_sha(),
-        "shortCommit": get_short_sha(),
+        "sourceCommit": source_commit,
+        "sourceCommitShort": source_commit[:7] if len(source_commit) >= 7 else source_commit,
+        "testedCommit": tested_commit,
+        "testedCommitShort": tested_commit[:7] if len(tested_commit) >= 7 else tested_commit,
+        "githubEvent": github_event,
         "buildUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "artifactName": artifact_name,
         "files": [{"path": p, "sha256": s} for p, s in files],
@@ -241,14 +217,34 @@ def main() -> None:
         default="Release",
         help="Build configuration (default: Release)",
     )
+    parser.add_argument(
+        "--source-commit",
+        required=True,
+        help="Source commit SHA (used for artifact naming).",
+    )
+    parser.add_argument(
+        "--tested-commit",
+        required=True,
+        help="Tested commit SHA (the actual code commit).",
+    )
+    parser.add_argument(
+        "--github-event",
+        default="unknown",
+        help="GitHub event name (e.g., push, pull_request).",
+    )
     args = parser.parse_args()
 
     if args.platform == "macos" and args.framework == "net48":
         print("ERROR: net48 is not supported on macOS")
         sys.exit(1)
 
-    short_sha = get_short_sha()
-    artifact_name = f"RCP-{args.platform}-{args.framework}-{short_sha}"
+    source_commit = args.source_commit
+    tested_commit = args.tested_commit
+
+    source_short = source_commit[:7] if len(source_commit) >= 7 else source_commit
+    tested_short = tested_commit[:7] if len(tested_commit) >= 7 else tested_commit
+
+    artifact_name = f"RCP-{args.platform}-{args.framework}-src-{source_short}-test-{tested_short}"
     source_dir = PLUGIN_RELEASE_ROOT / args.framework
 
     if not source_dir.is_dir():
@@ -277,6 +273,9 @@ def main() -> None:
         platform=args.platform,
         framework=args.framework,
         configuration=args.configuration,
+        source_commit=source_commit,
+        tested_commit=tested_commit,
+        github_event=args.github_event,
         files=manifest_files,
     )
 

@@ -12,6 +12,7 @@
     <PackageReference Include="Eto.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Platform.Abstractions\RhinoCommercialPlatform.Platform.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Core\RhinoCommercialPlatform.Core.csproj" />
     <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Modules.Abstractions\RhinoCommercialPlatform.Modules.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\RhinoCommercialPlatform.Infrastructure\RhinoCommercialPlatform.Infrastructure.csproj" />
