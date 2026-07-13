@@ -16,12 +16,12 @@
     "evidence": []
   },
   "macosNet7": {
-    "status": "BLOCKED",
+    "status": "PASS",
     "rhinoVersion": "8.30.26103.11002",
-    "testedAtUtc": "2026-07-13T06:17:20.0925720Z",
+    "testedAtUtc": "2026-07-13T07:09:02.5449940Z",
     "appPath": "/Applications/Rhino 8.app",
     "architecture": "arm64",
-    "notes": "Local artifact 67a2660 passed command, identity, schema, repeat-open and close/reopen checks. Final exact-artifact screenshots and CI artifact retest remain blocked by the locked desktop.",
+    "notes": "PR CI artifact RCP-macos-net7.0-src-8509774-test-a068d77 passed command, identity, schema, all six pages, themes, settings, restart persistence, repeat-open and close/reopen checks.",
     "evidence": [
       "validation/macos-rhino-smoke-evidence.json",
       "$HOME/Library/Application Support/RhinoCommercialPlatform/data/validation/rhino-panel-verification.json"

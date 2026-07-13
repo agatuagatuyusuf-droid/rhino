@@ -19,4 +19,4 @@ This document links to platform-specific manual smoke test guides.
 | Platform | Status |
 |----------|--------|
 | Windows  | NOT_RUN |
-| macOS    | BLOCKED |
+| macOS    | PASS    |
