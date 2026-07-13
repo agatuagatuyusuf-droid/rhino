@@ -24,5 +24,8 @@ public sealed class RhinoPanelGatewayLifecycleTests
         Assert.IsTrue(hide >= 0, "macOS panel must first be hidden.");
         Assert.IsTrue(show > hide, "macOS panel must be shown after it is hidden.");
         Assert.IsFalse(normalized.Contains("AsyncInvoke", StringComparison.Ordinal));
+        StringAssert.Contains(
+            normalized,
+            "else { global::Rhino.UI.Panels.OpenPanel(panelHostType, makeSelectedPanel); }");
     }
 }
