@@ -43,6 +43,22 @@ public sealed class MainPanelServiceLifecycleTests
     }
 
     [TestMethod]
+    public void CreateAboutViewModel_PassesLoadedAssemblyTestedCommit()
+    {
+        var sourcePath = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "../../../../../src/RhinoCommercialPlatform.Plugin/Panels/MainPanelService.cs"));
+        var source = File.ReadAllText(sourcePath);
+        var normalized = string.Join(" ", source.Split(
+            new[] { ' ', '\r', '\n', '\t' },
+            StringSplitOptions.RemoveEmptyEntries));
+
+        StringAssert.Contains(normalized, "GetCustomAttributes<AssemblyMetadataAttribute>()");
+        StringAssert.Contains(normalized, "attribute.Key == \"TestedCommit\"");
+        StringAssert.Contains(normalized, "rhinoVersion, buildCommit);");
+    }
+
+    [TestMethod]
     public void MainPanelView_UnsubscribesFromThemeChangesWhenDisposed()
     {
         var sourcePath = Path.GetFullPath(Path.Combine(

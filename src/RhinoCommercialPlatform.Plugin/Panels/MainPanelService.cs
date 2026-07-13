@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Rhino;
 using RhinoCommercialPlatform.UI.Shell;
@@ -175,12 +176,22 @@ public sealed class MainPanelService
         string? rhinoVersion = null;
         try { rhinoVersion = Rhino.RhinoApp.ExeVersion.ToString(); } catch { }
 
+        string? buildCommit = null;
+        try
+        {
+            buildCommit = typeof(MainPanelService).Assembly
+                .GetCustomAttributes<AssemblyMetadataAttribute>()
+                .FirstOrDefault(attribute => attribute.Key == "TestedCommit")?.Value;
+        }
+        catch { }
+
         return new AboutViewModel(
             _runtime.Metadata,
             _runtime.Platform.OperatingSystem,
             _runtime.Platform.ProcessArchitecture,
             _runtime.Platform.FrameworkDescription,
-            rhinoVersion);
+            rhinoVersion,
+            buildCommit);
     }
 
     private DiagnosticSnapshot CreateDiagnosticSnapshot()
