@@ -172,10 +172,14 @@ public sealed class MainPanelView : Panel, IPanelView
         ApplyTheme(palette);
     }
 
-    protected override void OnUnLoad(EventArgs e)
+    protected override void Dispose(bool disposing)
     {
-        _themeManager.ThemeChanged -= OnThemeChanged;
-        _state.PageChanged -= OnPageChanged;
-        base.OnUnLoad(e);
+        if (disposing)
+        {
+            _themeManager.ThemeChanged -= OnThemeChanged;
+            _state.PageChanged -= OnPageChanged;
+        }
+
+        base.Dispose(disposing);
     }
 }

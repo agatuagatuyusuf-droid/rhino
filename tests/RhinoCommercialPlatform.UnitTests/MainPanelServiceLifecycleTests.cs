@@ -24,7 +24,7 @@ public sealed class MainPanelServiceLifecycleTests
     }
 
     [TestMethod]
-    public void MainPanelView_UnsubscribesFromThemeChangesWhenUnloaded()
+    public void MainPanelView_UnsubscribesFromThemeChangesWhenDisposed()
     {
         var sourcePath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
@@ -34,8 +34,9 @@ public sealed class MainPanelServiceLifecycleTests
             new[] { ' ', '\r', '\n', '\t' },
             StringSplitOptions.RemoveEmptyEntries));
 
-        StringAssert.Contains(normalized, "protected override void OnUnLoad(EventArgs e)");
+        StringAssert.Contains(normalized, "protected override void Dispose(bool disposing)");
         StringAssert.Contains(normalized, "_themeManager.ThemeChanged -= OnThemeChanged;");
+        Assert.IsFalse(normalized.Contains("override void OnUnLoad", StringComparison.Ordinal));
     }
 
     [TestMethod]
