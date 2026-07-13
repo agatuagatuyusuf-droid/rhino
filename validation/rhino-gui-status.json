@@ -16,12 +16,15 @@
     "evidence": []
   },
   "macosNet7": {
-    "status": "NOT_RUN",
+    "status": "BLOCKED",
     "rhinoVersion": "8.30.26103.11002",
-    "testedAtUtc": null,
+    "testedAtUtc": "2026-07-13T06:17:20.0925720Z",
     "appPath": "/Applications/Rhino 8.app",
     "architecture": "arm64",
-    "notes": "Rhino MCP is available. Install and test a current provenance-bearing artifact; legacy ebd5a5a evidence is not release evidence.",
-    "evidence": []
+    "notes": "Local artifact 67a2660 passed command, identity, schema, repeat-open and close/reopen checks. Final exact-artifact screenshots and CI artifact retest remain blocked by the locked desktop.",
+    "evidence": [
+      "validation/macos-rhino-smoke-evidence.json",
+      "$HOME/Library/Application Support/RhinoCommercialPlatform/data/validation/rhino-panel-verification.json"
+    ]
   }
 }

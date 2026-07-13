@@ -155,4 +155,4 @@ Click each navigation item and verify the content area switches to the correspon
 | FAIL     | Verification failed         |
 | BLOCKED  | No Rhino 8 environment      |
 
-> Record results in [rhino-smoke-evidence.md](rhino-smoke-evidence.md) and update [rhino-gui-status.json](../validation/rhino-gui-status.json).
+> Current status: BLOCKED — local artifact `67a2660` passes command/API/lifecycle checks; exact-artifact screenshots and a CI artifact retest remain. Record the final result in [rhino-smoke-evidence.md](rhino-smoke-evidence.md) and [rhino-gui-status.json](../validation/rhino-gui-status.json).

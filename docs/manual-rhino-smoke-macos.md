@@ -40,4 +40,4 @@
 | FAIL     | Verification failed         |
 | BLOCKED  | No Rhino 8 environment      |
 
-> Current Rhino GUI verification status: NOT_RUN
+> Current Rhino GUI verification status: BLOCKED — command/API evidence passes for local artifact `67a2660`; exact-artifact screenshots and CI artifact retest remain.
