@@ -36,14 +36,14 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
         }
     }
 
-    public bool OpenPanel(Type panelHostType)
+    public bool OpenPanel(Type panelHostType, bool makeSelectedPanel)
     {
         if (panelHostType == null)
             throw new ArgumentNullException(nameof(panelHostType));
 
         try
         {
-            global::Rhino.UI.Panels.OpenPanel(panelHostType);
+            global::Rhino.UI.Panels.OpenPanel(panelHostType, makeSelectedPanel);
             return true;
         }
         catch (Exception ex)

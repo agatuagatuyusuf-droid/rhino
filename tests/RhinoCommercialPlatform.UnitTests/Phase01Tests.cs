@@ -884,14 +884,14 @@ public sealed class SystemTextJsonDependencyTests
 internal sealed class MockRhinoPanelGateway : IRhinoPanelGateway
 {
     public Func<object, Type, string, object?, bool>? OnRegisterPanel { get; set; }
-    public Func<Type, bool>? OnOpenPanel { get; set; }
+    public Func<Type, bool, bool>? OnOpenPanel { get; set; }
     public Action<Guid>? OnClosePanel { get; set; }
     public Func<Type, bool>? OnIsPanelVisible { get; set; }
     public Func<Guid, object?>? OnGetPanel { get; set; }
 
     public bool RegisterPanel(object pluginInstance, Type panelType, string panelName, object? icon)
         => OnRegisterPanel?.Invoke(pluginInstance, panelType, panelName, icon) ?? true;
-    public bool OpenPanel(Type panelHostType) => OnOpenPanel?.Invoke(panelHostType) ?? true;
+    public bool OpenPanel(Type panelHostType, bool makeSelectedPanel) => OnOpenPanel?.Invoke(panelHostType, makeSelectedPanel) ?? true;
     public void ClosePanel(Guid panelId) => OnClosePanel?.Invoke(panelId);
     public bool IsPanelVisible(Type panelHostType) => OnIsPanelVisible?.Invoke(panelHostType) ?? true;
     public object? GetPanel(Guid panelId) => OnGetPanel?.Invoke(panelId);
@@ -922,11 +922,11 @@ public sealed class PanelGatewayContractTests
     public void OpenPanel_ReturnsGatewayResult()
     {
         var gateway = new MockRhinoPanelGateway();
-        gateway.OnOpenPanel = _ => true;
-        Assert.IsTrue(gateway.OpenPanel(typeof(object)));
+        gateway.OnOpenPanel = (_, makeSelectedPanel) => makeSelectedPanel;
+        Assert.IsTrue(gateway.OpenPanel(typeof(object), true));
 
-        gateway.OnOpenPanel = _ => false;
-        Assert.IsFalse(gateway.OpenPanel(typeof(object)));
+        gateway.OnOpenPanel = (_, makeSelectedPanel) => makeSelectedPanel;
+        Assert.IsFalse(gateway.OpenPanel(typeof(object), false));
     }
 
     [TestMethod]

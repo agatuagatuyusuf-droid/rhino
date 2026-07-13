@@ -126,7 +126,7 @@ public static class MainPanelRegistration
             }
 
             var gateway = GetGateway();
-            var opened = gateway.OpenPanel(typeof(RhinoMainPanelHost));
+            var opened = gateway.OpenPanel(typeof(RhinoMainPanelHost), true);
             if (!opened)
             {
                 RhinoApp.WriteLine($"Failed to open panel '{PanelName}': OpenPanel returned false.");
