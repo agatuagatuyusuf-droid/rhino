@@ -44,6 +44,8 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
         try
         {
             global::Rhino.UI.Panels.OpenPanel(panelHostType, makeSelectedPanel);
+            if (global::Rhino.Runtime.HostUtils.RunningOnOSX)
+                global::Rhino.UI.Panels.FloatPanel(panelHostType, global::Rhino.UI.Panels.FloatPanelMode.Show);
             return true;
         }
         catch (Exception ex)
