@@ -133,7 +133,7 @@ public static class MainPanelRegistration
                 return false;
             }
 
-            var visible = gateway.IsPanelVisible(typeof(RhinoMainPanelHost));
+            var visible = gateway.IsPanelVisible(typeof(RhinoMainPanelHost), true);
             var panelInstance = gateway.GetPanel(PanelId);
             var instanceOk = panelInstance != null && panelInstance is RhinoMainPanelHost;
 
@@ -162,7 +162,7 @@ public static class MainPanelRegistration
 
             try
             {
-                if (gateway.IsPanelVisible(typeof(RhinoMainPanelHost)))
+                if (gateway.IsPanelVisible(typeof(RhinoMainPanelHost), false))
                 {
                     RhinoApp.WriteLine($"Panel '{PanelName}' close called but panel still reported visible.");
                 }
@@ -181,7 +181,7 @@ public static class MainPanelRegistration
     {
         try
         {
-            return GetGateway().IsPanelVisible(typeof(RhinoMainPanelHost));
+            return GetGateway().IsPanelVisible(typeof(RhinoMainPanelHost), true);
         }
         catch (Exception ex)
         {

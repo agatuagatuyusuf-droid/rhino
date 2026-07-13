@@ -886,14 +886,14 @@ internal sealed class MockRhinoPanelGateway : IRhinoPanelGateway
     public Func<object, Type, string, object?, bool>? OnRegisterPanel { get; set; }
     public Func<Type, bool, bool>? OnOpenPanel { get; set; }
     public Action<Guid>? OnClosePanel { get; set; }
-    public Func<Type, bool>? OnIsPanelVisible { get; set; }
+    public Func<Type, bool, bool>? OnIsPanelVisible { get; set; }
     public Func<Guid, object?>? OnGetPanel { get; set; }
 
     public bool RegisterPanel(object pluginInstance, Type panelType, string panelName, object? icon)
         => OnRegisterPanel?.Invoke(pluginInstance, panelType, panelName, icon) ?? true;
     public bool OpenPanel(Type panelHostType, bool makeSelectedPanel) => OnOpenPanel?.Invoke(panelHostType, makeSelectedPanel) ?? true;
     public void ClosePanel(Guid panelId) => OnClosePanel?.Invoke(panelId);
-    public bool IsPanelVisible(Type panelHostType) => OnIsPanelVisible?.Invoke(panelHostType) ?? true;
+    public bool IsPanelVisible(Type panelHostType, bool isSelectedTab) => OnIsPanelVisible?.Invoke(panelHostType, isSelectedTab) ?? true;
     public object? GetPanel(Guid panelId) => OnGetPanel?.Invoke(panelId);
 }
 
@@ -944,11 +944,11 @@ public sealed class PanelGatewayContractTests
     public void IsPanelVisible_ReturnsGatewayResult()
     {
         var gateway = new MockRhinoPanelGateway();
-        gateway.OnIsPanelVisible = _ => true;
-        Assert.IsTrue(gateway.IsPanelVisible(typeof(object)));
+        gateway.OnIsPanelVisible = (_, isSelectedTab) => isSelectedTab;
+        Assert.IsTrue(gateway.IsPanelVisible(typeof(object), true));
 
-        gateway.OnIsPanelVisible = _ => false;
-        Assert.IsFalse(gateway.IsPanelVisible(typeof(object)));
+        gateway.OnIsPanelVisible = (_, isSelectedTab) => isSelectedTab;
+        Assert.IsFalse(gateway.IsPanelVisible(typeof(object), false));
     }
 
     [TestMethod]

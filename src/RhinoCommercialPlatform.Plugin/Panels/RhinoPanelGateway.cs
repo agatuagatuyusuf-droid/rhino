@@ -67,14 +67,14 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
         }
     }
 
-    public bool IsPanelVisible(Type panelHostType)
+    public bool IsPanelVisible(Type panelHostType, bool isSelectedTab)
     {
         if (panelHostType == null)
             throw new ArgumentNullException(nameof(panelHostType));
 
         try
         {
-            return global::Rhino.UI.Panels.IsPanelVisible(panelHostType);
+            return global::Rhino.UI.Panels.IsPanelVisible(panelHostType, isSelectedTab);
         }
         catch (Exception ex)
         {
