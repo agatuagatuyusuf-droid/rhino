@@ -54,7 +54,8 @@ public sealed class MainPanelService
         if (_disposed)
             return null;
 
-        if (_panelView != null)
+        if (_panelView != null &&
+            !(_panelView is Eto.Widget widget && widget.IsDisposed))
             return _panelView;
 
         try
