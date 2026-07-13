@@ -54,5 +54,24 @@
       "uniqueItems": true
     }
   },
+  "if": {
+    "properties": { "status": { "const": "PASS" } }
+  },
+  "then": {
+    "properties": {
+      "panelRegistered": { "const": true },
+      "panelOpened": { "const": true },
+      "panelVisible": { "const": true },
+      "settingsSave": { "const": true },
+      "settingsReload": { "const": true },
+      "logDirectoryExists": { "const": true },
+      "failures": { "maxItems": 0 }
+    }
+  },
+  "else": {
+    "properties": {
+      "failures": { "minItems": 1 }
+    }
+  },
   "additionalProperties": false
 }

@@ -76,6 +76,10 @@ try {
         -FilePath "python" `
         -Arguments @("tools/test_package_test_artifacts.py")
 
+    Invoke-NativeChecked `
+        -FilePath "python" `
+        -Arguments @("tools/test_check_panel_verification_schema.py")
+
     Write-Host "=== panel verification schema ==="
     Invoke-NativeChecked `
         -FilePath "python" `
