@@ -222,7 +222,7 @@ public sealed class VerifyPanelCommand : Command
         var rhinoVersion = "unknown";
         try
         {
-            rhinoVersion = RhinoApp.ExeVersion.ToString();
+            rhinoVersion = RhinoApp.Version.ToString();
             if (!string.IsNullOrWhiteSpace(rhinoVersion))
                 Pass("RhinoVersion");
             else
