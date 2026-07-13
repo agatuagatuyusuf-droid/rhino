@@ -33,4 +33,24 @@ public sealed class RhinoPanelGatewayLifecycleTests
             normalized,
             "control.Loaded && control.ParentWindow?.Visible == true");
     }
+
+    [TestMethod]
+    public void MacPanelClose_ClosesTheVisibleWindowWithoutLeavingAnUnloadedHost()
+    {
+        var sourcePath = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "../../../../../src/RhinoCommercialPlatform.Plugin/Panels/RhinoPanelGateway.cs"));
+        var source = File.ReadAllText(sourcePath);
+        var normalized = string.Join(" ", source.Split(
+            new[] { ' ', '\r', '\n', '\t' },
+            StringSplitOptions.RemoveEmptyEntries));
+        var closeStart = normalized.IndexOf("public void ClosePanel", StringComparison.Ordinal);
+        var closeEnd = normalized.IndexOf("public bool IsPanelVisible", StringComparison.Ordinal);
+        var closeMethod = normalized.Substring(closeStart, closeEnd - closeStart);
+
+        StringAssert.Contains(closeMethod, "if (global::Rhino.Runtime.HostUtils.RunningOnOSX)");
+        StringAssert.Contains(closeMethod, "GetVisibleMacPanel(panelId)");
+        StringAssert.Contains(closeMethod, "control.ParentWindow?.Close();");
+        StringAssert.Contains(closeMethod, "else { global::Rhino.UI.Panels.ClosePanel(panelId); }");
+    }
 }

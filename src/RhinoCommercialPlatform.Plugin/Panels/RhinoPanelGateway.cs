@@ -70,7 +70,15 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
     {
         try
         {
-            global::Rhino.UI.Panels.ClosePanel(panelId);
+            if (global::Rhino.Runtime.HostUtils.RunningOnOSX)
+            {
+                if (GetVisibleMacPanel(panelId) is Eto.Forms.Control control)
+                    control.ParentWindow?.Close();
+            }
+            else
+            {
+                global::Rhino.UI.Panels.ClosePanel(panelId);
+            }
         }
         catch (Exception ex)
         {
