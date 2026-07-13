@@ -8,7 +8,7 @@ namespace RhinoCommercialPlatform.UnitTests;
 public sealed class RhinoPanelGatewayLifecycleTests
 {
     [TestMethod]
-    public void MacPanelFloat_IsDeferredToTheUiEventLoop()
+    public void MacPanelFloat_HidesBeforeShowingToRaiseTheExistingWindow()
     {
         var sourcePath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
@@ -18,11 +18,11 @@ public sealed class RhinoPanelGatewayLifecycleTests
             new[] { ' ', '\r', '\n', '\t' },
             StringSplitOptions.RemoveEmptyEntries));
 
-        StringAssert.Contains(
-            normalized,
-            "Eto.Forms.Application.Instance.AsyncInvoke(() =>");
-        StringAssert.Contains(
-            normalized,
-            "panelHostType.GUID, global::Rhino.UI.Panels.FloatPanelMode.Show");
+        var hide = normalized.IndexOf("FloatPanelMode.Hide", StringComparison.Ordinal);
+        var show = normalized.IndexOf("FloatPanelMode.Show", StringComparison.Ordinal);
+
+        Assert.IsTrue(hide >= 0, "macOS panel must first be hidden.");
+        Assert.IsTrue(show > hide, "macOS panel must be shown after it is hidden.");
+        Assert.IsFalse(normalized.Contains("AsyncInvoke", StringComparison.Ordinal));
     }
 }

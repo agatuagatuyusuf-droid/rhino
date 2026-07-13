@@ -46,19 +46,12 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
             global::Rhino.UI.Panels.OpenPanel(panelHostType, makeSelectedPanel);
             if (global::Rhino.Runtime.HostUtils.RunningOnOSX)
             {
-                Eto.Forms.Application.Instance.AsyncInvoke(() =>
-                {
-                    try
-                    {
-                        global::Rhino.UI.Panels.FloatPanel(
-                            panelHostType.GUID,
-                            global::Rhino.UI.Panels.FloatPanelMode.Show);
-                    }
-                    catch (Exception ex)
-                    {
-                        RhinoApp.WriteLine($"Failed to float panel '{panelHostType.Name}': {ex.Message}");
-                    }
-                });
+                global::Rhino.UI.Panels.FloatPanel(
+                    panelHostType.GUID,
+                    global::Rhino.UI.Panels.FloatPanelMode.Hide);
+                global::Rhino.UI.Panels.FloatPanel(
+                    panelHostType.GUID,
+                    global::Rhino.UI.Panels.FloatPanelMode.Show);
             }
             return true;
         }
