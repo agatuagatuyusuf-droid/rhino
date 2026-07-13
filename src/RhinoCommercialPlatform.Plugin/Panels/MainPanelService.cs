@@ -21,8 +21,6 @@ public sealed class MainPanelService
     private static readonly object _lock = new object();
 
     private readonly AppRuntime _runtime;
-    private MainPanelController? _controller;
-    private IPanelView? _panelView;
     private bool _disposed;
 
     private MainPanelService(AppRuntime runtime)
@@ -49,14 +47,10 @@ public sealed class MainPanelService
         return _instance;
     }
 
-    public IPanelView? GetOrCreatePanelView()
+    public IPanelView? CreatePanelView()
     {
         if (_disposed)
             return null;
-
-        if (_panelView != null &&
-            !(_panelView is Eto.Widget widget && widget.IsDisposed))
-            return _panelView;
 
         try
         {
@@ -64,9 +58,9 @@ public sealed class MainPanelService
             var themeManager = _runtime.ThemeManager;
             var settingsService = _runtime.UserSettingsService;
 
-            _controller = new MainPanelController(state, themeManager, settingsService);
+            var controller = new MainPanelController(state, themeManager, settingsService);
 
-            var lastPage = _controller.GetLastPageOrDefault();
+            var lastPage = controller.GetLastPageOrDefault();
 
             var dashboardViewModel = CreateDashboardViewModel();
             var modulesViewModel = new ModulesViewModel(_runtime.Modules);
@@ -84,7 +78,7 @@ public sealed class MainPanelService
             var settingsPage = new SettingsPage(settingsViewModel);
             var aboutPage = new AboutPage(aboutViewModel);
 
-            _panelView = _controller.CreatePanelView(
+            var panelView = controller.CreatePanelView(
                 dashboardPage,
                 modulesPage,
                 runtimeStatusPage,
@@ -92,17 +86,17 @@ public sealed class MainPanelService
                 settingsPage,
                 aboutPage);
 
-            _panelView.OpenLogDirectoryRequested += (_, _) => OpenDirectory(_runtime.Paths.LogsDirectory);
-            _panelView.OpenConfigDirectoryRequested += (_, _) => OpenDirectory(_runtime.Paths.ConfigDirectory);
-            _panelView.CopyDiagnosticsRequested += (_, _) => CopyDiagnosticsToClipboard();
+            panelView.OpenLogDirectoryRequested += (_, _) => OpenDirectory(_runtime.Paths.LogsDirectory);
+            panelView.OpenConfigDirectoryRequested += (_, _) => OpenDirectory(_runtime.Paths.ConfigDirectory);
+            panelView.CopyDiagnosticsRequested += (_, _) => CopyDiagnosticsToClipboard();
 
             if (lastPage != NavigationPageId.Dashboard)
             {
                 state.NavigateTo(lastPage);
-                _panelView.ShowPage(lastPage);
+                panelView.ShowPage(lastPage);
             }
 
-            return _panelView;
+            return panelView;
         }
         catch (Exception ex)
         {
@@ -117,9 +111,6 @@ public sealed class MainPanelService
         if (_disposed)
             return;
 
-        _controller?.Dispose();
-        _controller = null;
-        _panelView = null;
         _disposed = true;
 
         lock (_lock)

@@ -27,7 +27,7 @@ public sealed class RhinoMainPanelHost : Panel
             }
 
             var panelService = MainPanelService.GetInstance(plugin.Runtime);
-            var mainView = panelService.GetOrCreatePanelView();
+            var mainView = panelService.CreatePanelView();
 
             if (mainView == null)
             {

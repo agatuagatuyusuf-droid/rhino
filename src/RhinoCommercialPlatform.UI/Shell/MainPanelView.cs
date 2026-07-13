@@ -171,4 +171,11 @@ public sealed class MainPanelView : Panel, IPanelView
     {
         ApplyTheme(palette);
     }
+
+    protected override void OnUnLoad(EventArgs e)
+    {
+        _themeManager.ThemeChanged -= OnThemeChanged;
+        _state.PageChanged -= OnPageChanged;
+        base.OnUnLoad(e);
+    }
 }

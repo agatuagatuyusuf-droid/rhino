@@ -133,16 +133,16 @@ public sealed class VerifyPanelCommand : Command
 
         try
         {
-            var panelService = MainPanelService.GetInstance(runtime);
-            var view = panelService.GetOrCreatePanelView();
-            if (view != null)
+            if (panelInstance is RhinoMainPanelHost host &&
+                host.Content != null &&
+                host.Content.GetType() == typeof(MainPanelView))
             {
                 Pass("MainPanelViewCreated");
-                logger.Information("MainPanelView type: " + typeof(MainPanelView).FullName);
+                logger.Information("MainPanelView type: " + host.Content.GetType().FullName);
             }
             else
             {
-                Fail("MainPanelViewCreated", "MainPanelView is null");
+                Fail("MainPanelViewCreated", "Rhino panel host does not contain MainPanelView");
             }
         }
         catch (Exception ex)

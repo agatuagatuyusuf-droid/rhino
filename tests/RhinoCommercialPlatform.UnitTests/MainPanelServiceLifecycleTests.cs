@@ -8,7 +8,7 @@ namespace RhinoCommercialPlatform.UnitTests;
 public sealed class MainPanelServiceLifecycleTests
 {
     [TestMethod]
-    public void GetOrCreatePanelView_ReusesOnlyUndisposedCachedWidget()
+    public void CreatePanelView_DoesNotReuseAViewAcrossRhinoPanelHosts()
     {
         var sourcePath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
@@ -18,9 +18,35 @@ public sealed class MainPanelServiceLifecycleTests
             new[] { ' ', '\r', '\n', '\t' },
             StringSplitOptions.RemoveEmptyEntries));
 
-        StringAssert.Contains(
-            normalized,
-            "if (_panelView != null && !(_panelView is Eto.Widget widget && widget.IsDisposed)) return _panelView;",
-            "A cached panel view must be reused unless its Eto widget has been disposed.");
+        Assert.IsFalse(normalized.Contains("private IPanelView? _panelView", StringComparison.Ordinal));
+        StringAssert.Contains(normalized, "var controller = new MainPanelController(");
+        StringAssert.Contains(normalized, "return panelView;");
+    }
+
+    [TestMethod]
+    public void MainPanelView_UnsubscribesFromThemeChangesWhenUnloaded()
+    {
+        var sourcePath = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "../../../../../src/RhinoCommercialPlatform.UI/Shell/MainPanelView.cs"));
+        var source = File.ReadAllText(sourcePath);
+        var normalized = string.Join(" ", source.Split(
+            new[] { ' ', '\r', '\n', '\t' },
+            StringSplitOptions.RemoveEmptyEntries));
+
+        StringAssert.Contains(normalized, "protected override void OnUnLoad(EventArgs e)");
+        StringAssert.Contains(normalized, "_themeManager.ThemeChanged -= OnThemeChanged;");
+    }
+
+    [TestMethod]
+    public void VerifyPanel_InspectsTheRhinoHostedView()
+    {
+        var sourcePath = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "../../../../../src/RhinoCommercialPlatform.Plugin/Commands/VerifyPanelCommand.cs"));
+        var source = File.ReadAllText(sourcePath);
+
+        Assert.IsFalse(source.Contains("GetOrCreatePanelView", StringComparison.Ordinal));
+        StringAssert.Contains(source, "host.Content.GetType() == typeof(MainPanelView)");
     }
 }
