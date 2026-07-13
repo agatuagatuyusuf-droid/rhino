@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Rhino Panel Verification Evidence",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "status",
+    "ciRunId",
+    "artifactName",
+    "artifactSha256",
+    "sourceCommit",
+    "testedCommit",
+    "platform",
+    "framework",
+    "architecture",
+    "pluginVersion",
+    "rhinoVersion",
+    "panelId",
+    "panelRegistered",
+    "panelOpened",
+    "panelVisible",
+    "panelInstanceType",
+    "settingsSave",
+    "settingsReload",
+    "logDirectoryExists",
+    "testedAtUtc",
+    "failures"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "enum": ["PASS", "FAIL"] },
+    "ciRunId": { "type": "string", "pattern": "^(?!unknown$).+" },
+    "artifactName": { "type": "string", "pattern": "^RCP-(windows|macos)-(net7\\.0|net48)-src-[0-9a-fA-F]{7}-test-[0-9a-fA-F]{7}$" },
+    "artifactSha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "sourceCommit": { "type": "string", "pattern": "^[0-9a-fA-F]{7,40}$" },
+    "testedCommit": { "type": "string", "pattern": "^[0-9a-fA-F]{7,40}$" },
+    "platform": { "enum": ["windows", "macos"] },
+    "framework": { "enum": ["net7.0", "net48"] },
+    "architecture": { "type": "string", "minLength": 1 },
+    "pluginVersion": { "type": "string", "minLength": 1 },
+    "rhinoVersion": { "type": "string", "minLength": 1 },
+    "panelId": { "type": "string", "format": "uuid" },
+    "panelRegistered": { "type": "boolean" },
+    "panelOpened": { "type": "boolean" },
+    "panelVisible": { "type": "boolean" },
+    "panelInstanceType": { "type": "string", "minLength": 1 },
+    "settingsSave": { "type": "boolean" },
+    "settingsReload": { "type": "boolean" },
+    "logDirectoryExists": { "type": "boolean" },
+    "testedAtUtc": { "type": "string", "format": "date-time" },
+    "failures": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "if": {
+    "properties": { "status": { "const": "PASS" } }
+  },
+  "then": {
+    "properties": {
+      "panelRegistered": { "const": true },
+      "panelOpened": { "const": true },
+      "panelVisible": { "const": true },
+      "settingsSave": { "const": true },
+      "settingsReload": { "const": true },
+      "logDirectoryExists": { "const": true },
+      "failures": { "maxItems": 0 }
+    }
+  },
+  "else": {
+    "properties": {
+      "failures": { "minItems": 1 }
+    }
+  },
+  "additionalProperties": false
+}

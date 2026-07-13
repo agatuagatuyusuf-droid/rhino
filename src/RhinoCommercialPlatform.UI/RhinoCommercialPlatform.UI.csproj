@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>RhinoCommercialPlatform.UI</AssemblyName>
+    <RootNamespace>RhinoCommercialPlatform.UI</RootNamespace>
+    <Version>0.2.0</Version>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <FileVersion>0.2.0.0</FileVersion>
+    <InformationalVersion>0.2.0</InformationalVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Eto.Forms" PrivateAssets="all" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RhinoCommercialPlatform.Core\RhinoCommercialPlatform.Core.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.Infrastructure\RhinoCommercialPlatform.Infrastructure.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.Modules.Abstractions\RhinoCommercialPlatform.Modules.Abstractions.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.Platform.Abstractions\RhinoCommercialPlatform.Platform.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

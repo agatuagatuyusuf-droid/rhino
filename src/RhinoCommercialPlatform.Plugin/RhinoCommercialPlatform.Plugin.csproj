@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;net48</TargetFrameworks>
+    <AssemblyName>RhinoCommercialPlatform.Plugin</AssemblyName>
+    <RootNamespace>RhinoCommercialPlatform.Plugin</RootNamespace>
+    <TargetExt>.rhp</TargetExt>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Version>0.2.1</Version>
+    <AssemblyVersion>0.2.1.0</AssemblyVersion>
+    <FileVersion>0.2.1.0</FileVersion>
+    <InformationalVersion>0.2.1</InformationalVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="TestedCommit" Value="$(TESTED_COMMIT)" Condition="'$(TESTED_COMMIT)' != ''" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="RhinoCommon"
+                      PrivateAssets="all"
+                      ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RhinoCommercialPlatform.Core\RhinoCommercialPlatform.Core.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.Modules.Abstractions\RhinoCommercialPlatform.Modules.Abstractions.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.Infrastructure\RhinoCommercialPlatform.Infrastructure.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.Modules.Foundation\RhinoCommercialPlatform.Modules.Foundation.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.UI\RhinoCommercialPlatform.UI.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.Platform.Abstractions\RhinoCommercialPlatform.Platform.Abstractions.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.Platform.Windows\RhinoCommercialPlatform.Platform.Windows.csproj" />
+    <ProjectReference Include="..\RhinoCommercialPlatform.Platform.Mac\RhinoCommercialPlatform.Platform.Mac.csproj" />
+  </ItemGroup>
+</Project>

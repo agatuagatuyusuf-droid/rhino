@@ -1,0 +1,30 @@
+{
+  "windowsNet7": {
+    "status": "NOT_RUN",
+    "rhinoVersion": null,
+    "testedAtUtc": null,
+    "architecture": "x64",
+    "notes": "Rhino 8.30 verification is required before Phase 01 closeout.",
+    "evidence": []
+  },
+  "windowsNet48": {
+    "status": "NOT_RUN",
+    "rhinoVersion": null,
+    "testedAtUtc": null,
+    "architecture": "x64",
+    "notes": "Rhino 8.30 verification is required before Phase 01 closeout.",
+    "evidence": []
+  },
+  "macosNet7": {
+    "status": "PASS",
+    "rhinoVersion": "8.30.26103.11002",
+    "testedAtUtc": "2026-07-13T10:11:30.3325970Z",
+    "appPath": "/Applications/Rhino 8.app",
+    "architecture": "arm64",
+    "notes": "PR CI artifact RCP-macos-net7.0-src-a7b1e6b-test-45393f4 passed command, schema, package/loaded-assembly/About identity, full-window rendering of all six pages, real System/Light/Dark switching, Dark+Settings restart persistence, repeated-open, and two real ClosePanel/reopen checks. Windows remains NOT_RUN and this is not release evidence.",
+    "evidence": [
+      "validation/macos-rhino-smoke-evidence.json",
+      "$HOME/Library/Application Support/RhinoCommercialPlatform/data/validation/rhino-panel-verification.json"
+    ]
+  }
+}
