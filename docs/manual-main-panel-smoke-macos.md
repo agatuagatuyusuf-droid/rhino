@@ -12,16 +12,7 @@
 
 Download `RCP-macos-net7.0-src-<source>-test-<tested>` from the CI run's Artifacts section.
 
-### 2. Verify SHA256SUMS
-
-```bash
-# Compare the SHA256 of the downloaded zip against the published checksum
-shasum -a 256 -c SHA256SUMS.txt
-```
-
-The command must report every packaged file as `OK`.
-
-### 3. Extract to test directory
+### 2. Extract to test directory
 
 ```bash
 unzip RCP-macos-net7.0-src-*-test-*.zip -d rcp-test
@@ -38,6 +29,20 @@ Verify the extraction contains:
 - `RhinoCommercialPlatform.Platform.Mac.dll`
 - `manifest.json`
 - `SHA256SUMS.txt`
+
+### 3. Verify package identity and SHA256SUMS
+
+Run the checks from the repository root. `SHA256SUMS.txt` verifies each extracted file; `artifactSha256` is the manifest's deterministic package-content digest, not the downloaded zip hash.
+
+```bash
+(cd rcp-test && shasum -a 256 -c SHA256SUMS.txt)
+TESTED_COMMIT=$(python3 -c 'import json; print(json.load(open("rcp-test/manifest.json"))["testedCommit"])')
+python3 tools/check_test_package.py \
+  --path rcp-test \
+  --commit "$TESTED_COMMIT"
+```
+
+Both commands must pass, and `manifest.json` must contain no `unknown` build identity.
 
 ### 4. Open Rhino 8
 
@@ -91,7 +96,7 @@ Click each navigation item and verify the content area switches to the correspon
 - **运行状态** — runtime status, module info, Rhino document info, version info
 - **诊断中心** — log path, recent log list, diagnostic info
 - **设置** — theme selector, auto-open checkbox, remember-page checkbox, log level dropdown
-- **关于** — product info, platform info, build info, licensing placeholder
+- **关于** — product info, platform info, build info, licensing placeholder; verify Build Commit equals `manifest.testedCommit`
 
 ### 10. Test theme switching
 
@@ -105,16 +110,15 @@ Click each navigation item and verify the content area switches to the correspon
 
 - Navigate to **设置** (Settings) page
 - Change theme to "暗黑" (Dark)
-- Change log level to "Debug"
 - Check "记住上次打开的页面" (Remember last page)
 - Click "保存设置" (Save Settings)
-- Verify "设置已保存" confirmation dialog appears
+- Verify the saved configuration records `themeMode=Dark`, `rememberLastPage=true`, and `lastPage=Settings`
 
-### 12. Close and reopen panel
+### 12. Close and reopen panel twice
 
-- Close the panel window
-- Run `RCP_OpenPanel` again
-- Verify the panel reappears with the same content
+- Invoke the real `MainPanelRegistration.ClosePanel` path through the Rhino MCP check, then run `RCP_OpenPanel`
+- Repeat the close/reopen cycle once more
+- After each reopen, verify `instances=1` and `visibleWindows=1`
 
 ### 13. Close Rhino, reopen, verify settings persist
 
@@ -122,8 +126,8 @@ Click each navigation item and verify the content area switches to the correspon
 - Launch Rhino 8 again
 - Load the .rhp file again (if not auto-loaded)
 - Run `RCP_OpenPanel`
-- Navigate to **设置**
-- Verify theme is still set to "暗黑" and log level to "Debug"
+- Without navigating first, verify the panel restores directly to **设置**
+- Verify theme is still set to "暗黑"
 - Verify "记住上次打开的页面" is still checked
 
 ## Expected Results
@@ -137,8 +141,8 @@ Click each navigation item and verify the content area switches to the correspon
 | 9    | Page navigation                | All 6 pages render correctly  |
 | 10   | Theme switching                | Light/Dark/System all work    |
 | 11   | Settings save                  | Settings saved without error  |
-| 12   | Close/reopen panel             | Panel reopens correctly       |
-| 13   | Settings persistence           | Settings survive Rhino restart|
+| 12   | Two real close/reopen cycles   | Each returns one visible panel |
+| 13   | Settings persistence           | Dark + Settings survive restart |
 
 ## Troubleshooting
 
@@ -155,4 +159,4 @@ Click each navigation item and verify the content area switches to the correspon
 | FAIL     | Verification failed         |
 | BLOCKED  | No Rhino 8 environment      |
 
-> Current status: PASS for PR artifact `RCP-macos-net7.0-src-355ad2b-test-cc1444f`. A `main` artifact retest is still required after merge. Record that final result in [rhino-smoke-evidence.md](rhino-smoke-evidence.md) and [rhino-gui-status.json](../validation/rhino-gui-status.json).
+> Current macOS status: PASS for PR artifact `RCP-macos-net7.0-src-a7b1e6b-test-45393f4`, including full-window About identity, all six pages, three themes, repeated-open, two real ClosePanel/reopen cycles, and restart persistence. Windows remains `NOT_RUN`, so this is not release evidence and Phase 01 is not globally complete. A `main` artifact retest is still required after merge. Record that final result in [rhino-smoke-evidence.md](rhino-smoke-evidence.md) and [rhino-gui-status.json](../validation/rhino-gui-status.json).

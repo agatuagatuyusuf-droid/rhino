@@ -3,13 +3,13 @@
 ## Prerequisites
 
 - Rhino 8 installed on macOS
-- Plugin built with `net7.0` target (macOS build)
+- macOS `net7.0` CI artifact downloaded and extracted
 
 ## Steps
 
 1. Open Rhino 8 on macOS.
 2. Open Plug-in Manager (`PlugInManager`).
-3. Load `src/RhinoCommercialPlatform.Plugin/bin/Release/net7.0/RhinoCommercialPlatform.Plugin.rhp`.
+3. Load `<extracted-artifact>/RhinoCommercialPlatform.Plugin.rhp`.
 4. Confirm the plug-in appears as loaded.
 5. Run the command `RCP_Status` in Rhino's command line.
 6. Verify output includes:
@@ -40,4 +40,4 @@
 | FAIL     | Verification failed         |
 | BLOCKED  | No Rhino 8 environment      |
 
-> Current Rhino GUI verification status: PASS for PR artifact `RCP-macos-net7.0-src-355ad2b-test-cc1444f`. A `main` artifact retest is still required after merge.
+> Current macOS status: PASS for PR artifact `RCP-macos-net7.0-src-a7b1e6b-test-45393f4`, including full-window About identity, all six pages, three themes, repeated-open, two real ClosePanel/reopen cycles, and restart persistence. Windows remains `NOT_RUN`, so this is not release evidence and Phase 01 is not globally complete. A `main` artifact retest is still required after merge.
