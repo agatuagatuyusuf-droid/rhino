@@ -155,4 +155,4 @@ Click each navigation item and verify the content area switches to the correspon
 | FAIL     | Verification failed         |
 | BLOCKED  | No Rhino 8 environment      |
 
-> Current status: PASS for PR artifact `RCP-macos-net7.0-src-8509774-test-a068d77`. A `main` artifact retest is still required after merge. Record that final result in [rhino-smoke-evidence.md](rhino-smoke-evidence.md) and [rhino-gui-status.json](../validation/rhino-gui-status.json).
+> Current status: PASS for PR artifact `RCP-macos-net7.0-src-355ad2b-test-cc1444f`. A `main` artifact retest is still required after merge. Record that final result in [rhino-smoke-evidence.md](rhino-smoke-evidence.md) and [rhino-gui-status.json](../validation/rhino-gui-status.json).

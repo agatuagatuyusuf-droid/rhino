@@ -40,4 +40,4 @@
 | FAIL     | Verification failed         |
 | BLOCKED  | No Rhino 8 environment      |
 
-> Current Rhino GUI verification status: PASS for PR artifact `RCP-macos-net7.0-src-8509774-test-a068d77`. A `main` artifact retest is still required after merge.
+> Current Rhino GUI verification status: PASS for PR artifact `RCP-macos-net7.0-src-355ad2b-test-cc1444f`. A `main` artifact retest is still required after merge.

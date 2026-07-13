@@ -18,10 +18,10 @@
   "macosNet7": {
     "status": "PASS",
     "rhinoVersion": "8.30.26103.11002",
-    "testedAtUtc": "2026-07-13T07:09:02.5449940Z",
+    "testedAtUtc": "2026-07-13T08:24:17.2878770Z",
     "appPath": "/Applications/Rhino 8.app",
     "architecture": "arm64",
-    "notes": "PR CI artifact RCP-macos-net7.0-src-8509774-test-a068d77 passed command, identity, schema, all six pages, themes, settings, restart persistence, repeat-open and close/reopen checks.",
+    "notes": "PR CI artifact RCP-macos-net7.0-src-355ad2b-test-cc1444f passed command, identity, schema, all six pages, themes, settings-save last-page preservation, restart persistence, repeat-open and close/reopen checks.",
     "evidence": [
       "validation/macos-rhino-smoke-evidence.json",
       "$HOME/Library/Application Support/RhinoCommercialPlatform/data/validation/rhino-panel-verification.json"
