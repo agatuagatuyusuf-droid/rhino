@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Rhino;
 using Rhino.PlugIns;
 using RhinoCommercialPlatform.Platform.Abstractions;
@@ -84,6 +85,9 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
 
         try
         {
+            if (global::Rhino.Runtime.HostUtils.RunningOnOSX)
+                return GetVisibleMacPanel(panelHostType.GUID) != null;
+
             return global::Rhino.UI.Panels.IsPanelVisible(panelHostType, isSelectedTab);
         }
         catch (Exception ex)
@@ -97,6 +101,9 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
     {
         try
         {
+            if (global::Rhino.Runtime.HostUtils.RunningOnOSX)
+                return GetVisibleMacPanel(panelId);
+
 #pragma warning disable CS0618 // GetPanel(Guid) is obsolete but is the only viable option without a RhinoDoc reference
             return global::Rhino.UI.Panels.GetPanel(panelId);
 #pragma warning restore CS0618
@@ -106,5 +113,16 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
             RhinoApp.WriteLine($"Failed to get panel ({panelId}): {ex.Message}");
             return null;
         }
+    }
+
+    private static object? GetVisibleMacPanel(Guid panelId)
+    {
+        var document = RhinoDoc.ActiveDoc;
+        if (document == null)
+            return null;
+
+        return global::Rhino.UI.Panels.GetPanels(panelId, document)
+            .OfType<Eto.Forms.Control>()
+            .FirstOrDefault(control => control.Loaded && control.ParentWindow?.Visible == true);
     }
 }

@@ -27,5 +27,10 @@ public sealed class RhinoPanelGatewayLifecycleTests
         StringAssert.Contains(
             normalized,
             "else { global::Rhino.UI.Panels.OpenPanel(panelHostType, makeSelectedPanel); }");
+        StringAssert.Contains(normalized, "GetVisibleMacPanel(panelHostType.GUID) != null");
+        StringAssert.Contains(normalized, "return GetVisibleMacPanel(panelId);");
+        StringAssert.Contains(
+            normalized,
+            "control.Loaded && control.ParentWindow?.Visible == true");
     }
 }
