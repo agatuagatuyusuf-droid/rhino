@@ -255,6 +255,7 @@ public sealed class VerifyPanelCommand : Command
             manifest = TestArtifactManifest.Load(Path.Combine(assemblyDirectory, "manifest.json"));
             if (!string.Equals(manifest.Platform, normalizedPlatform, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("Artifact platform does not match the Rhino runtime.");
+            manifest.ValidateLoadedAssembly(typeof(VerifyPanelCommand).Assembly);
 
             Pass("BuildIdentity");
         }

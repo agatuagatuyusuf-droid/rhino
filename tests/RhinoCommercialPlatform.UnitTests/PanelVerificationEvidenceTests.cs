@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RhinoCommercialPlatform.Infrastructure.Validation;
@@ -98,6 +99,46 @@ public sealed class PanelVerificationEvidenceTests
         {
             File.Delete(path);
         }
+    }
+
+    [TestMethod]
+    public void ValidateLoadedAssembly_AcceptsMatchingTestedCommit()
+    {
+        var manifest = CreateManifest(new string('4', 40));
+
+        manifest.ValidateLoadedAssembly(Assembly.GetExecutingAssembly());
+    }
+
+    [TestMethod]
+    public void ValidateLoadedAssembly_RejectsMissingTestedCommit()
+    {
+        var manifest = CreateManifest(new string('4', 40));
+
+        Assert.ThrowsExactly<InvalidDataException>(
+            () => manifest.ValidateLoadedAssembly(typeof(TestArtifactManifest).Assembly));
+    }
+
+    [TestMethod]
+    public void ValidateLoadedAssembly_RejectsMismatchedTestedCommit()
+    {
+        var manifest = CreateManifest(new string('5', 40));
+
+        Assert.ThrowsExactly<InvalidDataException>(
+            () => manifest.ValidateLoadedAssembly(Assembly.GetExecutingAssembly()));
+    }
+
+    private static TestArtifactManifest CreateManifest(string testedCommit)
+    {
+        return new TestArtifactManifest
+        {
+            Platform = "macos",
+            Framework = "net7.0",
+            SourceCommit = new string('1', 40),
+            TestedCommit = testedCommit,
+            CiRunId = "29189796523",
+            ArtifactName = "RCP-macos-net7.0-src-1111111-test-4444444",
+            ArtifactSha256 = new string('3', 64)
+        };
     }
 
     private static string WriteManifest(string sourceCommit, string testedCommit, string artifactSha256)

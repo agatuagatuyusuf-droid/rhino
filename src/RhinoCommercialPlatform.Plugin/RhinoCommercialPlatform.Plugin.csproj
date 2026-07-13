@@ -19,6 +19,9 @@
     <InformationalVersion>0.2.1</InformationalVersion>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyMetadata Include="TestedCommit" Value="$(TESTED_COMMIT)" Condition="'$(TESTED_COMMIT)' != ''" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="RhinoCommon"
                       PrivateAssets="all"
                       ExcludeAssets="runtime" />

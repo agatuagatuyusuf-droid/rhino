@@ -8,6 +8,9 @@
     <Version>0.1.0</Version>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyMetadata Include="TestedCommit" Value="4444444444444444444444444444444444444444" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="MSTest" />
     <PackageReference Include="Eto.Forms" />
   </ItemGroup>

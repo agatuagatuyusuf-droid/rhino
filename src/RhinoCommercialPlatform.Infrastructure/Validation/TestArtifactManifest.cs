@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 
@@ -60,6 +61,22 @@ public sealed class TestArtifactManifest
         {
             throw new InvalidDataException("Artifact manifest is invalid.", ex);
         }
+    }
+
+    public void ValidateLoadedAssembly(Assembly assembly)
+    {
+        if (assembly == null)
+            throw new ArgumentNullException(nameof(assembly));
+
+        var testedCommit = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => string.Equals(attribute.Key, "TestedCommit", StringComparison.Ordinal))
+            ?.Value;
+
+        if (string.IsNullOrWhiteSpace(testedCommit))
+            throw new InvalidDataException("Loaded plugin assembly has no TestedCommit metadata.");
+
+        if (!string.Equals(TestedCommit, testedCommit, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Loaded plugin assembly does not match manifest.testedCommit.");
     }
 
     private void Validate()
