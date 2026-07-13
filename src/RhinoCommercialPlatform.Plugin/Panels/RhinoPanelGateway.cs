@@ -46,10 +46,8 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
             global::Rhino.UI.Panels.OpenPanel(panelHostType, makeSelectedPanel);
             if (global::Rhino.Runtime.HostUtils.RunningOnOSX)
             {
-                EventHandler showOnIdle = null!;
-                showOnIdle = (_, _) =>
+                Eto.Forms.Application.Instance.AsyncInvoke(() =>
                 {
-                    RhinoApp.Idle -= showOnIdle;
                     try
                     {
                         global::Rhino.UI.Panels.FloatPanel(
@@ -60,8 +58,7 @@ public sealed class RhinoPanelGateway : IRhinoPanelGateway
                     {
                         RhinoApp.WriteLine($"Failed to float panel '{panelHostType.Name}': {ex.Message}");
                     }
-                };
-                RhinoApp.Idle += showOnIdle;
+                });
             }
             return true;
         }

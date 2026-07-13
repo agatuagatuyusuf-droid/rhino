@@ -8,7 +8,7 @@ namespace RhinoCommercialPlatform.UnitTests;
 public sealed class RhinoPanelGatewayLifecycleTests
 {
     [TestMethod]
-    public void MacPanelFloat_IsDeferredUntilRhinoIdle()
+    public void MacPanelFloat_IsDeferredToTheUiEventLoop()
     {
         var sourcePath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
@@ -18,8 +18,9 @@ public sealed class RhinoPanelGatewayLifecycleTests
             new[] { ' ', '\r', '\n', '\t' },
             StringSplitOptions.RemoveEmptyEntries));
 
-        StringAssert.Contains(normalized, "RhinoApp.Idle += showOnIdle;");
-        StringAssert.Contains(normalized, "RhinoApp.Idle -= showOnIdle;");
+        StringAssert.Contains(
+            normalized,
+            "Eto.Forms.Application.Instance.AsyncInvoke(() =>");
         StringAssert.Contains(
             normalized,
             "panelHostType.GUID, global::Rhino.UI.Panels.FloatPanelMode.Show");
