@@ -1,35 +1,27 @@
 {
-  "windows": {
+  "windowsNet7": {
     "status": "NOT_RUN",
     "rhinoVersion": null,
     "testedAtUtc": null,
-    "appPath": null,
-    "architecture": null,
-    "notes": "No Windows environment available for testing.",
+    "architecture": "x64",
+    "notes": "Rhino 8.30 verification is required before Phase 01 closeout.",
     "evidence": []
   },
-  "macos": {
-    "status": "BLOCKED",
-    "rhinoVersion": "8.30",
-    "testedAtUtc": "2026-07-12T10:10:00Z",
+  "windowsNet48": {
+    "status": "NOT_RUN",
+    "rhinoVersion": null,
+    "testedAtUtc": null,
+    "architecture": "x64",
+    "notes": "Rhino 8.30 verification is required before Phase 01 closeout.",
+    "evidence": []
+  },
+  "macosNet7": {
+    "status": "NOT_RUN",
+    "rhinoVersion": "8.30.26103.11002",
+    "testedAtUtc": null,
     "appPath": "/Applications/Rhino 8.app",
-    "architecture": "arm64, x86_64 (Universal)",
-    "notes": "Rhino 8 detected at /Applications/Rhino 8.app (v8.30, Universal binary). Plugin files installed to user plugin directory. Automated verification blocked: Rhino 8 for Mac does not expose RunCommand via AppleScript. Manual testing required to verify panel registration, opening, and visibility. System theme detection implemented (reads AppleInterfaceStyle via /usr/bin/defaults). All unit tests pass (72/72). MainPanelRegistration: fake success fixed, EnsureRegistered(), IRhinoPanelGateway created. RCP_VerifyPanel command created. UserSettingsService: thread-safe with ReaderWriterLockSlim, UUID temp file safety.",
-    "evidence": [
-      "Rhino app found at /Applications/Rhino 8.app",
-      "Bundle ID: com.mcneel.rhinoceros.8",
-      "Version: 8.30 (8.30.26103.11002)",
-      "Architecture: Universal (arm64 + x86_64)",
-      "macOS: 26.5.1 (25F80)",
-      "Plugin files installed to user plugin directory",
-      "72/72 unit tests pass",
-      "System.Text.Json removed from UI project",
-      "UserSettings first-save fixed",
-      "PluginSystemThemeProvider implemented",
-      "MainPanelRegistration: fake success fixed, EnsureRegistered() added",
-      "IRhinoPanelGateway interface + RhinoPanelGateway implementation",
-      "RCP_VerifyPanel command created",
-      "UserSettingsService: ReaderWriterLockSlim + UUID temp file safety"
-    ]
+    "architecture": "arm64",
+    "notes": "Rhino MCP is available. Install and test a current provenance-bearing artifact; legacy ebd5a5a evidence is not release evidence.",
+    "evidence": []
   }
 }

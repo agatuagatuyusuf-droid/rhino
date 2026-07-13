@@ -328,8 +328,10 @@ require_contains(
         "panelRegistered",
         "panelOpened",
         "panelVisible",
-        "finalStatus",
-        "Rhino Panel Verification Schema",
+        "artifactSha256",
+        "sourceCommit",
+        "testedCommit",
+        "Rhino Panel Verification Evidence",
     ],
 )
 

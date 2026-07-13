@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Rhino;
 using Rhino.Commands;
+using RhinoCommercialPlatform.Infrastructure.Validation;
 using RhinoCommercialPlatform.Plugin.Panels;
 using RhinoCommercialPlatform.UI.Shell;
 
@@ -57,10 +57,14 @@ public sealed class VerifyPanelCommand : Command
         }
 
         var logger = runtime.Logger;
+        var panelRegistered = false;
+        var panelOpened = false;
+        var panelVisible = false;
 
         try
         {
-            if (MainPanelRegistration.EnsureRegistered())
+            panelRegistered = MainPanelRegistration.EnsureRegistered();
+            if (panelRegistered)
                 Pass("EnsureRegistered");
             else
                 Fail("EnsureRegistered", "EnsureRegistered returned false");
@@ -72,7 +76,8 @@ public sealed class VerifyPanelCommand : Command
 
         try
         {
-            if (MainPanelRegistration.OpenPanel())
+            panelOpened = MainPanelRegistration.OpenPanel();
+            if (panelOpened)
                 Pass("OpenPanel");
             else
                 Fail("OpenPanel", "OpenPanel returned false");
@@ -84,7 +89,8 @@ public sealed class VerifyPanelCommand : Command
 
         try
         {
-            if (MainPanelRegistration.IsPanelVisible())
+            panelVisible = MainPanelRegistration.IsPanelVisible();
+            if (panelVisible)
                 Pass("IsPanelVisible");
             else
                 Fail("IsPanelVisible", "panel is not visible");
@@ -227,6 +233,78 @@ public sealed class VerifyPanelCommand : Command
             Fail("RhinoVersion", ex.Message);
         }
 
+        var platform = runtime.Platform;
+        var normalizedPlatform = platform.IsMacOS ? "macos" : platform.IsWindows ? "windows" : "unknown";
+        var manifest = new TestArtifactManifest
+        {
+            Platform = normalizedPlatform,
+            Framework = "unknown",
+            SourceCommit = "unknown",
+            TestedCommit = "unknown",
+            CiRunId = "unknown",
+            ArtifactName = "unknown",
+            ArtifactSha256 = new string('0', 64)
+        };
+
+        try
+        {
+            var assemblyDirectory = Path.GetDirectoryName(typeof(VerifyPanelCommand).Assembly.Location);
+            if (string.IsNullOrWhiteSpace(assemblyDirectory))
+                throw new InvalidDataException("Plugin assembly directory is unavailable.");
+
+            manifest = TestArtifactManifest.Load(Path.Combine(assemblyDirectory, "manifest.json"));
+            if (!string.Equals(manifest.Platform, normalizedPlatform, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Artifact platform does not match the Rhino runtime.");
+
+            Pass("BuildIdentity");
+        }
+        catch (Exception ex)
+        {
+            Fail("BuildIdentity", ex.Message);
+        }
+
+        try
+        {
+            var validationDir = Path.Combine(runtime.Paths.DataDirectory, "validation");
+            Directory.CreateDirectory(validationDir);
+            var jsonPath = Path.Combine(validationDir, "rhino-panel-verification.json");
+            var panelId = MainPanelRegistration.PanelId;
+            var panelTypeName = panelInstance?.GetType().FullName ?? "null";
+            var evidence = new PanelVerificationEvidence
+            {
+                SchemaVersion = 1,
+                Status = allPassed ? "PASS" : "FAIL",
+                CiRunId = manifest.CiRunId,
+                ArtifactName = manifest.ArtifactName,
+                ArtifactSha256 = manifest.ArtifactSha256,
+                SourceCommit = manifest.SourceCommit,
+                TestedCommit = manifest.TestedCommit,
+                Platform = normalizedPlatform,
+                Framework = manifest.Framework,
+                Architecture = platform.ProcessArchitecture.ToLowerInvariant(),
+                PluginVersion = pluginVersion,
+                RhinoVersion = rhinoVersion,
+                PanelId = panelId.ToString(),
+                PanelRegistered = panelRegistered,
+                PanelOpened = panelOpened,
+                PanelVisible = panelVisible,
+                PanelInstanceType = panelTypeName,
+                SettingsSave = settingsSaved,
+                SettingsReload = settingsReloaded,
+                LogDirectoryExists = Directory.Exists(runtime.Paths.LogsDirectory),
+                TestedAtUtc = DateTime.UtcNow.ToString("O"),
+                Failures = new List<string>(failures)
+            };
+
+            PanelVerificationEvidenceSerializer.Write(jsonPath, evidence);
+            logger.Information("RCP_VerifyPanel: validation result written to " + jsonPath);
+        }
+        catch (Exception ex)
+        {
+            Fail("EvidenceWrite", ex.Message);
+            logger.Error("RCP_VerifyPanel: failed to write validation result: " + ex.Message);
+        }
+
         if (allPassed)
         {
             RhinoApp.WriteLine("RCP_PANEL_VERIFY_PASS");
@@ -236,43 +314,6 @@ public sealed class VerifyPanelCommand : Command
         {
             RhinoApp.WriteLine("RCP_PANEL_VERIFY_FAIL");
             logger.Error("RCP_VerifyPanel: " + failures.Count + " check(s) failed: " + string.Join(", ", failures));
-        }
-
-        try
-        {
-            var validationDir = Path.Combine(runtime.Paths.DataDirectory, "validation");
-            Directory.CreateDirectory(validationDir);
-            var jsonPath = Path.Combine(validationDir, "rhino-panel-verification.json");
-            var platform = runtime.Platform;
-            var panelId = MainPanelRegistration.PanelId;
-            var visible = false;
-            try { visible = MainPanelRegistration.IsPanelVisible(); } catch { }
-            var panelTypeName = panelInstance?.GetType().FullName ?? "null";
-
-            var json = "{" +
-                "\"status\":\"" + (allPassed ? "pass" : "fail") + "\"," +
-                "\"sourceCommit\":\"unknown\"," +
-                "\"testedCommit\":\"unknown\"," +
-                "\"pluginVersion\":\"" + pluginVersion + "\"," +
-                "\"rhinoVersion\":\"" + rhinoVersion + "\"," +
-                "\"platform\":\"" + platform.OperatingSystem + "\"," +
-                "\"architecture\":\"" + platform.ProcessArchitecture + "\"," +
-                "\"panelId\":\"" + panelId.ToString() + "\"," +
-                "\"panelVisible\":" + visible.ToString().ToLower() + "," +
-                "\"panelInstanceType\":\"" + panelTypeName + "\"," +
-                "\"settingsFirstSave\":" + settingsSaved.ToString().ToLower() + "," +
-                "\"settingsReload\":" + settingsReloaded.ToString().ToLower() + "," +
-                "\"logDirectoryExists\":" + Directory.Exists(runtime.Paths.LogsDirectory).ToString().ToLower() + "," +
-                "\"testedAtUtc\":\"" + DateTime.UtcNow.ToString("O") + "\"," +
-                "\"failures\":[" + string.Join(",", failures.Select(f => "\"" + f + "\"")) + "]" +
-                "}";
-
-            File.WriteAllText(jsonPath, json);
-            logger.Information("RCP_VerifyPanel: validation result written to " + jsonPath);
-        }
-        catch (Exception ex)
-        {
-            logger.Error("RCP_VerifyPanel: failed to write validation result: " + ex.Message);
         }
 
         return allPassed ? Result.Success : Result.Failure;

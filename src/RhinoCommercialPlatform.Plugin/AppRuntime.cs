@@ -259,7 +259,7 @@ public sealed class AppRuntime : IDisposable
             // Fallback for non-critical metadata read
         }
 
-        return "0.2.0";
+        return "0.2.1";
     }
 
     private static IExternalLauncher? CreateExternalLauncher(IPlatformInfo platform)

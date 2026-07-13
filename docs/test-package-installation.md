@@ -9,44 +9,43 @@ CI pipelines produce platform-specific build artifacts for manual Rhino GUI test
 
 2. Scroll to **Artifacts** section at the bottom of the summary page.
 
-3. Download the relevant artifact:
-   - `RhinoCommercialPlatform-windows.zip` — Windows build (`net7.0` + `net48`)
-   - `RhinoCommercialPlatform-macos.zip` — macOS build (`net7.0` only)
+3. Download the relevant artifact. Each framework is published separately:
+   - `RCP-windows-net7.0-src-<source>-test-<tested>`
+   - `RCP-windows-net48-src-<source>-test-<tested>`
+   - `RCP-macos-net7.0-src-<source>-test-<tested>`
 
 ## Verifying Artifacts
 
-Each CI run publishes SHA256 checksums as separate artifacts:
-- `SHA256SUMS-windows.txt`
-- `SHA256SUMS-macos.txt`
+Each extracted artifact contains `manifest.json` and `SHA256SUMS.txt`. The manifest records the source commit, tested commit, CI run, and aggregate artifact digest.
 
 ### Windows
 
 ```powershell
-Get-FileHash .\RhinoCommercialPlatform-windows.zip -Algorithm SHA256
+Get-Content .\SHA256SUMS.txt
 ```
 
-Compare the output with the content of `SHA256SUMS-windows.txt`.
+Verify every listed file with an SHA256-capable checksum tool.
 
 ### macOS
 
 ```bash
-shasum -a 256 RhinoCommercialPlatform-macos.zip
+shasum -a 256 -c SHA256SUMS.txt
 ```
 
-Compare the output with the content of `SHA256SUMS-macos.txt`.
+Every file must report `OK`.
 
 ## Extracting
 
 ### Windows
 
 ```powershell
-Expand-Archive -Path .\RhinoCommercialPlatform-windows.zip -DestinationPath .\rcp-test
+Expand-Archive -Path .\RCP-windows-*.zip -DestinationPath .\rcp-test
 ```
 
 ### macOS
 
 ```bash
-unzip RhinoCommercialPlatform-macos.zip -d rcp-test
+unzip RCP-macos-net7.0-src-*-test-*.zip -d rcp-test
 ```
 
 ## Contents
@@ -62,8 +61,8 @@ Both artifacts contain:
 | `RhinoCommercialPlatform.Modules.Abstractions.dll`| Module system interfaces        |
 | `RhinoCommercialPlatform.Modules.Foundation.dll`  | Foundation module               |
 | `RhinoCommercialPlatform.Platform.Abstractions.dll`| Platform abstraction interfaces |
-| `Eto.dll`                                         | Eto.Forms cross-platform UI     |
-| `Eto.*.dll`                                       | Eto platform-specific renderers |
+| `manifest.json`                                   | Build and artifact provenance   |
+| `SHA256SUMS.txt`                                  | Per-file integrity checks       |
 
 Windows-only additional file:
 - `RhinoCommercialPlatform.Platform.Windows.dll`
@@ -84,6 +83,7 @@ macOS-only additional file:
 |-----------------|--------------------------------------|
 | `RCP_Status`    | Display runtime status information   |
 | `RCP_OpenPanel` | Open the main Eto.Forms panel        |
+| `RCP_VerifyPanel` | Run structured Panel verification  |
 
 ## Uninstalling
 

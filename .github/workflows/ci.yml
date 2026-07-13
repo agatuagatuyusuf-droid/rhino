@@ -46,6 +46,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Python validation dependencies
+        run: python -m pip install -r tools/requirements-ci.txt
+
       - name: Show environment
         shell: pwsh
         run: |
@@ -86,7 +89,7 @@ jobs:
       - name: Package Windows net7.0
         if: matrix.platform == 'windows'
         shell: pwsh
-        run: python tools/package_test_artifacts.py --platform windows --framework net7.0 --source-commit "${{ env.SOURCE_COMMIT }}" --tested-commit "${{ env.TESTED_COMMIT }}" --github-event "${{ env.GITHUB_EVENT }}"
+        run: python tools/package_test_artifacts.py --platform windows --framework net7.0 --source-commit "${{ env.SOURCE_COMMIT }}" --tested-commit "${{ env.TESTED_COMMIT }}" --ci-run-id "${{ github.run_id }}" --github-event "${{ env.GITHUB_EVENT }}"
 
       - name: Check Windows net7.0 package
         if: matrix.platform == 'windows'
@@ -104,7 +107,7 @@ jobs:
       - name: Package Windows net48
         if: matrix.platform == 'windows'
         shell: pwsh
-        run: python tools/package_test_artifacts.py --platform windows --framework net48 --source-commit "${{ env.SOURCE_COMMIT }}" --tested-commit "${{ env.TESTED_COMMIT }}" --github-event "${{ env.GITHUB_EVENT }}"
+        run: python tools/package_test_artifacts.py --platform windows --framework net48 --source-commit "${{ env.SOURCE_COMMIT }}" --tested-commit "${{ env.TESTED_COMMIT }}" --ci-run-id "${{ github.run_id }}" --github-event "${{ env.GITHUB_EVENT }}"
 
       - name: Check Windows net48 package
         if: matrix.platform == 'windows'
@@ -122,7 +125,7 @@ jobs:
       - name: Package macOS net7.0
         if: matrix.platform == 'macos'
         shell: pwsh
-        run: python tools/package_test_artifacts.py --platform macos --framework net7.0 --source-commit "${{ env.SOURCE_COMMIT }}" --tested-commit "${{ env.TESTED_COMMIT }}" --github-event "${{ env.GITHUB_EVENT }}"
+        run: python tools/package_test_artifacts.py --platform macos --framework net7.0 --source-commit "${{ env.SOURCE_COMMIT }}" --tested-commit "${{ env.TESTED_COMMIT }}" --ci-run-id "${{ github.run_id }}" --github-event "${{ env.GITHUB_EVENT }}"
 
       - name: Check macOS net7.0 package
         if: matrix.platform == 'macos'

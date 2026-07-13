@@ -46,6 +46,20 @@ def compute_sha256(file_path: Path) -> str:
     return h.hexdigest()
 
 
+def compute_artifact_sha256(files: list) -> str:
+    entries: list[tuple[str, str]] = []
+    for entry in files:
+        if isinstance(entry, dict):
+            entries.append((entry["path"], entry["sha256"]))
+        else:
+            entries.append(entry)
+
+    h = hashlib.sha256()
+    for path, sha256 in sorted(entries):
+        h.update(f"{path}\0{sha256}\n".encode("utf-8"))
+    return h.hexdigest()
+
+
 def get_version() -> str:
     csproj_path = (
         REPO_ROOT
@@ -115,6 +129,7 @@ def create_manifest(
     configuration: str,
     source_commit: str,
     tested_commit: str,
+    ci_run_id: str,
     github_event: str,
     files: list[tuple[str, str]],
 ) -> dict:
@@ -128,9 +143,11 @@ def create_manifest(
         "sourceCommitShort": source_commit[:7] if len(source_commit) >= 7 else source_commit,
         "testedCommit": tested_commit,
         "testedCommitShort": tested_commit[:7] if len(tested_commit) >= 7 else tested_commit,
+        "ciRunId": ci_run_id,
         "githubEvent": github_event,
         "buildUtc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "artifactName": artifact_name,
+        "artifactSha256": compute_artifact_sha256(files),
         "files": [{"path": p, "sha256": s} for p, s in files],
     }
 
@@ -228,6 +245,11 @@ def main() -> None:
         help="Tested commit SHA (the actual code commit).",
     )
     parser.add_argument(
+        "--ci-run-id",
+        default="local",
+        help="CI run identifier recorded in runtime verification evidence.",
+    )
+    parser.add_argument(
         "--github-event",
         default="unknown",
         help="GitHub event name (e.g., push, pull_request).",
@@ -275,6 +297,7 @@ def main() -> None:
         configuration=args.configuration,
         source_commit=source_commit,
         tested_commit=tested_commit,
+        ci_run_id=args.ci_run_id,
         github_event=args.github_event,
         files=manifest_files,
     )

@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Rhino 8 installed on macOS (Apple Silicon or Intel)
+- Rhino 8 installed on macOS Apple Silicon
 - CI build artifact downloaded (see [test-package-installation.md](test-package-installation.md))
 - SHA256SUMS file for artifact verification
 
@@ -10,21 +10,21 @@
 
 ### 1. Download the macOS artifact
 
-Download `RhinoCommercialPlatform-macos.zip` from the CI run's summary page (Actions tab).
+Download `RCP-macos-net7.0-src-<source>-test-<tested>` from the CI run's Artifacts section.
 
 ### 2. Verify SHA256SUMS
 
 ```bash
 # Compare the SHA256 of the downloaded zip against the published checksum
-shasum -a 256 RhinoCommercialPlatform-macos.zip
+shasum -a 256 -c SHA256SUMS.txt
 ```
 
-Compare the output hash against the value in `SHA256SUMS-macos.txt` from the CI run.
+The command must report every packaged file as `OK`.
 
 ### 3. Extract to test directory
 
 ```bash
-unzip RhinoCommercialPlatform-macos.zip -d rcp-test
+unzip RCP-macos-net7.0-src-*-test-*.zip -d rcp-test
 ```
 
 Verify the extraction contains:
@@ -36,7 +36,8 @@ Verify the extraction contains:
 - `RhinoCommercialPlatform.Modules.Foundation.dll`
 - `RhinoCommercialPlatform.Platform.Abstractions.dll`
 - `RhinoCommercialPlatform.Platform.Mac.dll`
-- `Eto.dll`
+- `manifest.json`
+- `SHA256SUMS.txt`
 
 ### 4. Open Rhino 8
 
@@ -59,7 +60,7 @@ Type `RCP_Status` in Rhino's command line and press Enter.
 Verify output includes:
 ```
 Product: RhinoCommercialPlatform
-Version: 0.2.0
+Version: 0.2.1
 Mode: Production
 Logs: <path>
 Operating System: macOS

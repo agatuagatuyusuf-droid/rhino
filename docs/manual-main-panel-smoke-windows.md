@@ -10,21 +10,21 @@
 
 ### 1. Download the Windows artifact
 
-Download `RhinoCommercialPlatform-windows.zip` from the CI run's summary page (Actions tab).
+Download the required `RCP-windows-net7.0-src-<source>-test-<tested>` or `RCP-windows-net48-src-<source>-test-<tested>` artifact.
 
 ### 2. Verify SHA256SUMS
 
 ```powershell
 # Compare the SHA256 of the downloaded zip against the published checksum
-Get-FileHash .\RhinoCommercialPlatform-windows.zip -Algorithm SHA256
+Get-Content .\SHA256SUMS.txt
 ```
 
-Compare the output hash against the value in `SHA256SUMS-windows.txt` from the CI run.
+Verify each listed file with an SHA256-capable checksum tool before loading it.
 
 ### 3. Extract to test directory
 
 ```powershell
-Expand-Archive -Path .\RhinoCommercialPlatform-windows.zip -DestinationPath .\rcp-test
+Expand-Archive -Path .\RCP-windows-*.zip -DestinationPath .\rcp-test
 ```
 
 Verify the extraction contains:
@@ -36,7 +36,8 @@ Verify the extraction contains:
 - `RhinoCommercialPlatform.Modules.Foundation.dll`
 - `RhinoCommercialPlatform.Platform.Abstractions.dll`
 - `RhinoCommercialPlatform.Platform.Windows.dll`
-- `Eto.dll`
+- `manifest.json`
+- `SHA256SUMS.txt`
 
 ### 4. Open Rhino 8
 
@@ -59,7 +60,7 @@ Type `RCP_Status` in Rhino's command line and press Enter.
 Verify output includes:
 ```
 Product: RhinoCommercialPlatform
-Version: 0.2.0
+Version: 0.2.1
 Mode: Production
 Logs: <path>
 Operating System: Windows

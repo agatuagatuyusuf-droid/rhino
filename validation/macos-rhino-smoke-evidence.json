@@ -1,4 +1,7 @@
 {
+  "usableForRelease": false,
+  "supersededAtUtc": "2026-07-13T04:31:11Z",
+  "supersededReason": "Evidence predates the versioned panel schema and current source commit. Retained as historical context only.",
   "commit": "ebd5a5a4957281b1de4f397cd75cf41a21fbbff4",
   "testedCommit": "ebd5a5a4957281b1de4f397cd75cf41a21fbbff4",
   "artifactName": "RCP-macos-net7.0-ebd5a5a",

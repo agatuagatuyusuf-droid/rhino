@@ -14,14 +14,14 @@
 5. Run the command `RCP_Status` in Rhino's command line.
 6. Verify output includes:
    - Product: RhinoCommercialPlatform
-    - Version: 0.2.0
+    - Version: 0.2.1
    - Mode: Production
    - Operating System: macOS
    - OS Description: macOS ...
    - Process Architecture: Arm64 / X64
    - Framework: .NET ...
    - Logs: <path>
-    - Modules: foundation (Foundation) v0.2.0
+    - Modules: foundation (Foundation) v0.1.0
 7. Close Rhino.
 8. Check log file under the logs directory shown by `RCP_Status`:
    - "Foundation module initialized."

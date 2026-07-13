@@ -10,6 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from package_test_artifacts import compute_artifact_sha256
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -117,6 +119,8 @@ def main() -> None:
     source_commit_short = manifest.get("sourceCommitShort", "")
     tested_commit = manifest.get("testedCommit", "")
     tested_commit_short = manifest.get("testedCommitShort", "")
+    ci_run_id = manifest.get("ciRunId", "")
+    artifact_sha256 = manifest.get("artifactSha256", "")
     github_event = manifest.get("githubEvent", "")
 
     if not platform:
@@ -133,8 +137,23 @@ def main() -> None:
         errors.append("MISSING_FIELD: manifest.testedCommit")
     if not tested_commit_short:
         errors.append("MISSING_FIELD: manifest.testedCommitShort")
+    if not ci_run_id:
+        errors.append("MISSING_FIELD: manifest.ciRunId")
+    if not artifact_sha256:
+        errors.append("MISSING_FIELD: manifest.artifactSha256")
     if not github_event:
         errors.append("MISSING_FIELD: manifest.githubEvent")
+
+    identity_fields = {
+        "sourceCommit": source_commit,
+        "testedCommit": tested_commit,
+        "ciRunId": ci_run_id,
+        "artifactName": artifact_name,
+        "artifactSha256": artifact_sha256,
+    }
+    for name, value in identity_fields.items():
+        if str(value).lower() == "unknown":
+            errors.append(f"UNKNOWN_IDENTITY: manifest.{name}")
 
     # Verify artifact name matches expected format
     expected_artifact = f"RCP-{platform}-{framework}-src-{source_commit_short}-test-{tested_commit_short}"
@@ -146,11 +165,11 @@ def main() -> None:
     # Verify tested commit against expected
     expected_commit = args.commit
     if expected_commit:
-        if tested_commit != "unknown" and tested_commit != expected_commit:
+        if tested_commit != expected_commit:
             errors.append(
                 f"TESTED_COMMIT_MISMATCH: manifest.testedCommit={tested_commit}, expected={expected_commit}"
             )
-        if tested_commit_short != "unknown" and tested_commit_short != expected_commit[:7]:
+        if tested_commit_short != expected_commit[:7]:
             errors.append(
                 f"TESTED_COMMIT_SHORT_MISMATCH: manifest.testedCommitShort={tested_commit_short}, expected={expected_commit[:7]}"
             )
@@ -159,6 +178,8 @@ def main() -> None:
     file_entries = manifest.get("files", [])
     if not file_entries:
         errors.append("MANIFEST_NO_FILES: manifest.files is empty")
+    elif compute_artifact_sha256(file_entries) != artifact_sha256:
+        errors.append("ARTIFACT_SHA256_MISMATCH: manifest artifact digest is invalid")
 
     for entry in file_entries:
         file_path = package_dir / entry["path"]

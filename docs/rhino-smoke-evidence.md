@@ -10,7 +10,7 @@ Use this template to record manual GUI verification results.
 | **Tester**         |                                |
 | **Platform**       | Windows / macOS                 |
 | **Rhino Version**  | 8.x                             |
-| **Plugin Version** | 0.2.0                           |
+| **Plugin Version** | 0.2.1                           |
 | **Build Commit**   | `<commit-sha>`                  |
 | **CI Run ID**      | `<run-id>`                      |
 

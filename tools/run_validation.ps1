@@ -71,6 +71,19 @@ try {
         -FilePath "python" `
         -Arguments @("-m", "compileall", "-q", "tools")
 
+    Write-Host "=== Python tool tests ==="
+    Invoke-NativeChecked `
+        -FilePath "python" `
+        -Arguments @("tools/test_package_test_artifacts.py")
+
+    Write-Host "=== panel verification schema ==="
+    Invoke-NativeChecked `
+        -FilePath "python" `
+        -Arguments @(
+            "tools/check_panel_verification_schema.py",
+            "validation/rhino-panel-verification.example.json"
+        )
+
     Write-Host "=== check structure ==="
     Invoke-NativeChecked `
         -FilePath "python" `

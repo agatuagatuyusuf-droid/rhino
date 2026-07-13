@@ -105,7 +105,7 @@ Settings are persisted as JSON with atomic writes and survive Rhino restarts.
 
 ## Status
 
-> Phase 01 includes a fully functional cross-platform Eto.Forms main panel with settings persistence and theme support. Automated Windows and macOS validation pipelines run on CI. Rhino GUI loading remains a separate manual verification tracked in `validation/rhino-gui-status.json`.
+> Phase 01 code is implemented, but release closeout is pending. Automated CI does not replace the required Windows net7/net48 and macOS net7 Rhino GUI evidence tracked in `validation/rhino-gui-status.json`.
 
 ## What Phase 01 Does NOT Include
 
