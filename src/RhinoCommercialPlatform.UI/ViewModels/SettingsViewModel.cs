@@ -9,16 +9,19 @@ public sealed class SettingsViewModel
     private readonly IUserSettingsService _settingsService;
     private readonly ThemeManager _themeManager;
 
-    private UserSettings _currentSettings;
+    private readonly UserSettings _currentSettings;
 
     public event EventHandler? SettingsSaved;
     public event EventHandler? SettingsReset;
 
-    public SettingsViewModel(IUserSettingsService settingsService, ThemeManager themeManager)
+    public SettingsViewModel(
+        IUserSettingsService settingsService,
+        ThemeManager themeManager,
+        UserSettings currentSettings)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _themeManager = themeManager ?? throw new ArgumentNullException(nameof(themeManager));
-        _currentSettings = _settingsService.Load();
+        _currentSettings = currentSettings ?? throw new ArgumentNullException(nameof(currentSettings));
     }
 
     public UserSettings CurrentSettings => _currentSettings;
@@ -66,13 +69,25 @@ public sealed class SettingsViewModel
 
     public void ResetToDefaults()
     {
-        _currentSettings = _settingsService.ResetToDefaults();
+        CopySettings(_settingsService.ResetToDefaults());
         _themeManager.SetThemeFromModeString(_currentSettings.ThemeMode);
         SettingsReset?.Invoke(this, EventArgs.Empty);
     }
 
     public void Reload()
     {
-        _currentSettings = _settingsService.Load();
+        CopySettings(_settingsService.Load());
+    }
+
+    private void CopySettings(UserSettings settings)
+    {
+        _currentSettings.SchemaVersion = settings.SchemaVersion;
+        _currentSettings.ThemeMode = settings.ThemeMode;
+        _currentSettings.AutoOpenPanel = settings.AutoOpenPanel;
+        _currentSettings.RememberLastPage = settings.RememberLastPage;
+        _currentSettings.LastPage = settings.LastPage;
+        _currentSettings.LogLevel = settings.LogLevel;
+        _currentSettings.Language = settings.Language;
+        _currentSettings.UpdatedAtUtc = settings.UpdatedAtUtc;
     }
 }

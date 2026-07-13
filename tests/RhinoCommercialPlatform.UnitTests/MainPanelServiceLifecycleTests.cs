@@ -24,6 +24,25 @@ public sealed class MainPanelServiceLifecycleTests
     }
 
     [TestMethod]
+    public void CreatePanelView_SharesControllerSettingsWithSettingsViewModel()
+    {
+        var sourcePath = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "../../../../../src/RhinoCommercialPlatform.Plugin/Panels/MainPanelService.cs"));
+        var source = File.ReadAllText(sourcePath);
+        var normalized = string.Join(" ", source.Split(
+            new[] { ' ', '\r', '\n', '\t' },
+            StringSplitOptions.RemoveEmptyEntries));
+
+        StringAssert.Contains(
+            normalized,
+            "new SettingsViewModel(settingsService, themeManager, controller.Settings)");
+        Assert.IsFalse(normalized.Contains(
+            "new SettingsViewModel(settingsService, themeManager);",
+            StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void MainPanelView_UnsubscribesFromThemeChangesWhenDisposed()
     {
         var sourcePath = Path.GetFullPath(Path.Combine(

@@ -66,7 +66,7 @@ public sealed class MainPanelService
             var modulesViewModel = new ModulesViewModel(_runtime.Modules);
             var runtimeStatusViewModel = CreateRuntimeStatusViewModel();
             var diagnosticsViewModel = CreateDiagnosticsViewModel();
-            var settingsViewModel = new SettingsViewModel(settingsService, themeManager);
+            var settingsViewModel = new SettingsViewModel(settingsService, themeManager, controller.Settings);
             var aboutViewModel = CreateAboutViewModel();
 
             diagnosticsViewModel.SetSnapshotFactory(() => CreateDiagnosticSnapshot());
